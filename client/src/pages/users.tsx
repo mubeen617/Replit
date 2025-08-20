@@ -40,11 +40,38 @@ export default function Users() {
 
   const { data: customersData } = useQuery({
     queryKey: ["/api/customers"],
+    queryFn: async () => {
+      const response = await fetch('/api/customers?limit=1000', {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     enabled: isAuthenticated,
   });
 
   const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ["/api/customers", selectedCustomer, "users", search],
+    queryKey: ["/api/customers", selectedCustomer, "users", { search }],
+    queryFn: async () => {
+      if (!selectedCustomer) return [];
+      
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      
+      const response = await fetch(`/api/customers/${selectedCustomer}/users?${params}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     enabled: isAuthenticated && !!selectedCustomer,
   });
 
@@ -168,7 +195,7 @@ export default function Users() {
       header: "Created",
       cell: ({ row }: { row: { original: CustomerUser } }) => {
         const user = row.original;
-        return new Date(user.createdAt).toLocaleDateString();
+        return user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A';
       },
     },
     {

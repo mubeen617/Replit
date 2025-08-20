@@ -10,7 +10,7 @@ import {
   type InsertCustomerUser,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, ilike, or, count } from "drizzle-orm";
+import { eq, desc, ilike, or, and, count } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -65,9 +65,8 @@ export class DatabaseStorage implements IStorage {
 
   // Customer operations
   async getCustomers(search?: string, offset = 0, limit = 10): Promise<{ customers: Customer[], total: number }> {
-    let query = db.select().from(customers);
-    let countQuery = db.select({ count: count() }).from(customers);
-
+    const baseQuery = db.select().from(customers);
+    
     if (search) {
       const searchCondition = or(
         ilike(customers.name, `%${search}%`),
@@ -75,19 +74,27 @@ export class DatabaseStorage implements IStorage {
         ilike(customers.adminName, `%${search}%`),
         ilike(customers.adminEmail, `%${search}%`)
       );
-      query = query.where(searchCondition);
-      countQuery = countQuery.where(searchCondition);
+      
+      const [customersResult, totalResult] = await Promise.all([
+        baseQuery.where(searchCondition).orderBy(desc(customers.createdAt)).offset(offset).limit(limit),
+        db.select({ count: count() }).from(customers).where(searchCondition)
+      ]);
+
+      return {
+        customers: customersResult,
+        total: totalResult[0].count
+      };
+    } else {
+      const [customersResult, totalResult] = await Promise.all([
+        baseQuery.orderBy(desc(customers.createdAt)).offset(offset).limit(limit),
+        db.select({ count: count() }).from(customers)
+      ]);
+
+      return {
+        customers: customersResult,
+        total: totalResult[0].count
+      };
     }
-
-    const [customersResult, totalResult] = await Promise.all([
-      query.orderBy(desc(customers.createdAt)).offset(offset).limit(limit),
-      countQuery
-    ]);
-
-    return {
-      customers: customersResult,
-      total: totalResult[0].count
-    };
   }
 
   async getCustomerById(id: string): Promise<Customer | undefined> {
@@ -118,19 +125,26 @@ export class DatabaseStorage implements IStorage {
 
   // Customer user operations
   async getCustomerUsers(customerId: string, search?: string): Promise<CustomerUser[]> {
-    let query = db.select().from(customerUsers).where(eq(customerUsers.customerId, customerId));
-
     if (search) {
-      query = query.where(
-        or(
-          ilike(customerUsers.email, `%${search}%`),
-          ilike(customerUsers.firstName, `%${search}%`),
-          ilike(customerUsers.lastName, `%${search}%`)
+      return db.select()
+        .from(customerUsers)
+        .where(
+          and(
+            eq(customerUsers.customerId, customerId),
+            or(
+              ilike(customerUsers.email, `%${search}%`),
+              ilike(customerUsers.firstName, `%${search}%`),
+              ilike(customerUsers.lastName, `%${search}%`)
+            )
+          )
         )
-      );
+        .orderBy(desc(customerUsers.createdAt));
     }
 
-    return query.orderBy(desc(customerUsers.createdAt));
+    return db.select()
+      .from(customerUsers)
+      .where(eq(customerUsers.customerId, customerId))
+      .orderBy(desc(customerUsers.createdAt));
   }
 
   async getCustomerUserById(id: string): Promise<CustomerUser | undefined> {

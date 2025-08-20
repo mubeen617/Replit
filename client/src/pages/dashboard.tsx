@@ -28,6 +28,17 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/stats"],
+    queryFn: async () => {
+      const response = await fetch('/api/stats', {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     enabled: isAuthenticated,
   });
 

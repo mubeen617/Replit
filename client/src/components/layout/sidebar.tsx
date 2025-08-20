@@ -2,10 +2,11 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Truck, LayoutDashboard, Users, UserCog, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { User } from "@shared/schema";
 
 export function Sidebar() {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: User | null };
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -45,8 +46,8 @@ export function Sidebar() {
             const isActive = location === item.href;
             return (
               <Link key={item.name} href={item.href}>
-                <a
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                <div
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                     isActive
                       ? "bg-primary-50 text-primary-700 border-r-2 border-primary-500"
                       : "text-secondary-700 hover:bg-secondary-50"
@@ -54,7 +55,7 @@ export function Sidebar() {
                 >
                   <item.icon className="mr-3" size={20} />
                   {item.name}
-                </a>
+                </div>
               </Link>
             );
           })}

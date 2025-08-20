@@ -39,7 +39,23 @@ export default function Customers() {
   }, [isAuthenticated, isLoading, toast]);
 
   const { data: customersData, isLoading: customersLoading } = useQuery({
-    queryKey: ["/api/customers", search, page],
+    queryKey: ["/api/customers", { search, page }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      params.append('page', page.toString());
+      params.append('limit', '10');
+      
+      const response = await fetch(`/api/customers?${params}`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     enabled: isAuthenticated,
   });
 
@@ -155,7 +171,7 @@ export default function Customers() {
       header: "Created",
       cell: ({ row }: { row: { original: Customer } }) => {
         const customer = row.original;
-        return new Date(customer.createdAt).toLocaleDateString();
+        return customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'N/A';
       },
     },
     {
