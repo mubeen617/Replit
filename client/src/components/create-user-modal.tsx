@@ -40,6 +40,7 @@ export function CreateUserModal({ open, onOpenChange, customerId }: CreateUserMo
       email: "",
       firstName: "",
       lastName: "",
+      password: "",
       role: "user",
       status: "active",
     },
@@ -136,6 +137,24 @@ export function CreateUserModal({ open, onOpenChange, customerId }: CreateUserMo
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
                       <Input placeholder="user@company.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        placeholder="Enter secure password (min 8 characters)" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

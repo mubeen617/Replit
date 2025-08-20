@@ -4,7 +4,7 @@ This is a full-stack web application built for truck dispatch CRM administration
 
 The system provides authentication via Replit Auth, customer management capabilities, user management within customer organizations, and a statistics dashboard. It's designed to handle multi-tenant scenarios where each customer organization has its own set of users with different roles and permissions.
 
-**Recent Update (August 20, 2025)**: Added secure password storage for customers. Admin passwords are now required when creating customers and are hashed using bcrypt before storage. This enables future CRM portal authentication where customers can login using their email and password credentials.
+**Recent Update (August 20, 2025)**: Added secure password storage for both customers and users. Admin passwords are now required when creating customers, and user passwords are required when creating customer users. All passwords are hashed using bcrypt before storage. This enables future CRM portal authentication where both customer admins and their users can login using their email and password credentials.
 
 # User Preferences
 

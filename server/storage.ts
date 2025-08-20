@@ -43,6 +43,7 @@ export interface IStorage {
   
   // Authentication helpers for future CRM portal
   verifyCustomerPassword(email: string, password: string): Promise<Customer | null>;
+  verifyUserPassword(email: string, password: string): Promise<CustomerUser | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -169,18 +170,31 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createCustomerUser(user: InsertCustomerUser): Promise<CustomerUser> {
+  async createCustomerUser(userData: InsertCustomerUser): Promise<CustomerUser> {
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    
     const [created] = await db
       .insert(customerUsers)
-      .values(user)
+      .values({
+        ...userData,
+        password: hashedPassword,
+      })
       .returning();
     return created;
   }
 
-  async updateCustomerUser(id: string, user: Partial<InsertCustomerUser>): Promise<CustomerUser> {
+  async updateCustomerUser(id: string, userData: Partial<InsertCustomerUser>): Promise<CustomerUser> {
+    const updateData: any = { ...userData, updatedAt: new Date() };
+    
+    // Hash password if it's being updated
+    if (userData.password) {
+      updateData.password = await bcrypt.hash(userData.password, 10);
+    }
+    
     const [updated] = await db
       .update(customerUsers)
-      .set({ ...user, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(customerUsers.id, id))
       .returning();
     return updated;
@@ -210,7 +224,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
   
-  // Authentication helper for future CRM portal
+  // Authentication helpers for future CRM portal
   async verifyCustomerPassword(email: string, password: string): Promise<Customer | null> {
     const [customer] = await db
       .select()
@@ -227,6 +241,24 @@ export class DatabaseStorage implements IStorage {
     }
     
     return customer;
+  }
+  
+  async verifyUserPassword(email: string, password: string): Promise<CustomerUser | null> {
+    const [user] = await db
+      .select()
+      .from(customerUsers)
+      .where(eq(customerUsers.email, email));
+    
+    if (!user) {
+      return null;
+    }
+    
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return null;
+    }
+    
+    return user;
   }
 }
 
