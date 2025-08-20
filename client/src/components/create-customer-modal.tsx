@@ -39,6 +39,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
       domain: "",
       adminName: "",
       adminEmail: "",
+      adminPassword: "",
       status: "active",
     },
   });
@@ -154,6 +155,26 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
                       <FormLabel>Email Address</FormLabel>
                       <FormControl>
                         <Input placeholder="admin@company.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="adminPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Enter secure password (min 8 characters)" 
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
