@@ -26,6 +26,7 @@ import {
   User,
   CheckCircle,
   AlertCircle,
+  DollarSign,
 } from "lucide-react";
 import type { CustomerUser } from "@shared/schema";
 
@@ -76,7 +77,7 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
                 <h1 className="text-2xl font-bold text-gray-900">
                   Welcome, {user.firstName}
                 </h1>
-                <p className="text-sm text-gray-600">Driver Dashboard</p>
+                <p className="text-sm text-gray-600">Broker Agent Dashboard</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -98,20 +99,20 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Loads</CardTitle>
+              <CardTitle className="text-sm font-medium">My Leads</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">0</div>
               <p className="text-xs text-muted-foreground">
-                Currently assigned
+                Currently working
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CardTitle className="text-sm font-medium">Booked</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -124,11 +125,11 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Miles Driven</CardTitle>
-              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Commission</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">$0</div>
               <p className="text-xs text-muted-foreground">
                 This month
               </p>
@@ -137,45 +138,45 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">On-Time Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">100%</div>
+              <div className="text-2xl font-bold">0%</div>
               <p className="text-xs text-muted-foreground">
-                Delivery performance
+                Lead conversion
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Current Loads */}
+        {/* Current Leads */}
         <Card>
           <CardHeader>
-            <CardTitle>My Loads</CardTitle>
+            <CardTitle>My Leads</CardTitle>
             <CardDescription>
-              Your assigned loads and delivery schedules
+              Your assigned leads and freight opportunities
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loads.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <Package className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-xl font-medium mb-2">No loads assigned</h3>
-                <p className="mb-6">You don't have any loads assigned at the moment</p>
+                <h3 className="text-xl font-medium mb-2">No leads assigned</h3>
+                <p className="mb-6">You don't have any freight leads assigned at the moment</p>
                 <div className="text-sm text-gray-400">
-                  Contact your dispatcher for load assignments
+                  Contact your broker manager for lead assignments
                 </div>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Load #</TableHead>
+                    <TableHead>Lead #</TableHead>
                     <TableHead>Origin</TableHead>
                     <TableHead>Destination</TableHead>
                     <TableHead>Pickup Date</TableHead>
-                    <TableHead>Delivery Date</TableHead>
+                    <TableHead>Customer Rate</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Priority</TableHead>
                   </TableRow>
@@ -215,45 +216,45 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Update Location</CardTitle>
+              <CardTitle className="text-lg">Find Carriers</CardTitle>
               <CardDescription>
-                Share your current location with dispatch
+                Search for available trucks and carriers
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="w-full">
-                <MapPin className="h-4 w-4 mr-2" />
-                Share Location
+                <Truck className="h-4 w-4 mr-2" />
+                Search Carriers
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Report Issue</CardTitle>
+              <CardTitle className="text-lg">Quote Calculator</CardTitle>
               <CardDescription>
-                Report any problems or delays
+                Calculate rates and margins for leads
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button variant="outline" className="w-full">
-                <AlertCircle className="h-4 w-4 mr-2" />
-                Report Issue
+                <DollarSign className="h-4 w-4 mr-2" />
+                Calculate Rate
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Contact Dispatch</CardTitle>
+              <CardTitle className="text-lg">Contact Manager</CardTitle>
               <CardDescription>
-                Get in touch with your dispatcher
+                Get help from your broker manager
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button variant="outline" className="w-full">
                 <User className="h-4 w-4 mr-2" />
-                Contact Support
+                Contact Manager
               </Button>
             </CardContent>
           </Card>

@@ -1,10 +1,15 @@
 # Overview
 
-This is a full-stack web application built for truck dispatch CRM administration. It's a modern React-based admin dashboard that allows management of customers and their users in a trucking/logistics business context. The application uses a monolithic architecture with a Node.js/Express backend serving both API endpoints and static frontend assets.
+This is a full-stack web application built for freight brokerage CRM administration. It's a modern React-based admin dashboard that allows management of brokerage companies and their broker agents. The application uses a monolithic architecture with a Node.js/Express backend serving both API endpoints and static frontend assets.
 
-The system provides authentication via Replit Auth, customer management capabilities, user management within customer organizations, and a statistics dashboard. It's designed to handle multi-tenant scenarios where each customer organization has its own set of users with different roles and permissions.
+The system provides authentication via Replit Auth for the Server Panel, plus a separate CRM portal with email/password authentication for brokers. It's designed for freight brokers who receive shipping leads and distribute them to their broker agents to find carriers and arrange shipments. The system handles multi-tenant scenarios where each brokerage company has its own set of broker agents with different roles and permissions.
 
-**Recent Update (August 20, 2025)**: Added secure password storage for both customers and users. Admin passwords are now required when creating customers, and user passwords are required when creating customer users. All passwords are hashed using bcrypt before storage. This enables future CRM portal authentication where both customer admins and their users can login using their email and password credentials.
+**Recent Update (August 20, 2025)**: Added complete CRM portal system with secure password authentication for freight brokers. The system now includes:
+- CRM login page with separate authentication for broker managers and broker agents
+- Broker manager dashboard for lead distribution and team management  
+- Broker agent dashboard for working leads and finding carriers
+- Role-based interfaces reflecting freight brokerage workflow (leads, carriers, commissions)
+- All passwords are hashed using bcrypt before storage for security
 
 # User Preferences
 

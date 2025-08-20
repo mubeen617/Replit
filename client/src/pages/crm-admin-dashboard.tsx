@@ -114,7 +114,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                 <h1 className="text-2xl font-bold text-gray-900">
                   {customer.name}
                 </h1>
-                <p className="text-sm text-gray-600">Admin Dashboard</p>
+                <p className="text-sm text-gray-600">Broker Manager Dashboard</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -149,20 +149,20 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Loads</CardTitle>
+              <CardTitle className="text-sm font-medium">Active Leads</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">0</div>
               <p className="text-xs text-muted-foreground">
-                Currently in transit
+                Available for brokers
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">Commission</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -175,13 +175,13 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Performance</CardTitle>
+              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">100%</div>
+              <div className="text-2xl font-bold">0%</div>
               <p className="text-xs text-muted-foreground">
-                On-time delivery
+                Leads to bookings
               </p>
             </CardContent>
           </Card>
@@ -192,14 +192,14 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>Team Members</CardTitle>
+                <CardTitle>Broker Agents</CardTitle>
                 <CardDescription>
-                  Manage your team members and their access levels
+                  Manage your broker agents and their access levels
                 </CardDescription>
               </div>
               <Button>
                 <UserPlus className="h-4 w-4 mr-2" />
-                Add User
+                Add Broker
               </Button>
             </div>
           </CardHeader>
@@ -209,11 +209,11 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
             ) : users.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium mb-2">No team members yet</h3>
-                <p className="mb-4">Start by adding your first team member</p>
+                <h3 className="text-lg font-medium mb-2">No broker agents yet</h3>
+                <p className="mb-4">Start by adding your first broker agent</p>
                 <Button>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Add First User
+                  Add First Broker
                 </Button>
               </div>
             ) : (
