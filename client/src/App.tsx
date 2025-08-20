@@ -8,6 +8,7 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Customers from "@/pages/customers";
 import Users from "@/pages/users";
+import CRMPortal from "@/pages/crm-portal";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +16,7 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/crm" component={CRMPortal} />
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
