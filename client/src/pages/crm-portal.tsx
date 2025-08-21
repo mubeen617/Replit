@@ -1,18 +1,15 @@
 import { useState } from "react";
+import { Route, Switch } from "wouter";
 import CRMLogin from "./crm-login";
-import CRMAdminDashboard from "./crm-admin-dashboard";
-import CRMUserDashboard from "./crm-user-dashboard";
-import type { Customer, CustomerUser } from "@shared/schema";
-
-interface CRMUser {
-  type: "customer" | "user";
-  data: Customer | CustomerUser;
-}
+import DashboardLayout from "@/components/layout/dashboard-layout";
+import Dashboard from "./crm/dashboard";
+import Leads from "./crm/leads";
+import Agents from "./crm/agents";
 
 export default function CRMPortal() {
-  const [currentUser, setCurrentUser] = useState<CRMUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const handleLogin = (user: CRMUser) => {
+  const handleLogin = (user: any) => {
     setCurrentUser(user);
   };
 
@@ -24,19 +21,43 @@ export default function CRMPortal() {
     return <CRMLogin onLogin={handleLogin} />;
   }
 
-  if (currentUser.type === "customer") {
-    return (
-      <CRMAdminDashboard
-        customer={currentUser.data as Customer}
-        onLogout={handleLogout}
-      />
-    );
-  }
+  const userName = currentUser.type === "customer" 
+    ? currentUser.data.adminName 
+    : `${currentUser.data.firstName} ${currentUser.data.lastName}`;
 
   return (
-    <CRMUserDashboard
-      user={currentUser.data as CustomerUser}
-      onLogout={handleLogout}
-    />
+    <DashboardLayout 
+      onLogout={handleLogout} 
+      userType={currentUser.type}
+      userName={userName}
+    >
+      <Switch>
+        <Route path="/crm/dashboard">
+          <Dashboard 
+            customer={currentUser.type === "customer" ? currentUser.data : null}
+            user={currentUser.type === "user" ? currentUser.data : null}
+            userType={currentUser.type}
+          />
+        </Route>
+        <Route path="/crm/leads">
+          <Leads 
+            customer={currentUser.type === "customer" ? currentUser.data : { id: currentUser.data.customerId }}
+            userType={currentUser.type}
+          />
+        </Route>
+        <Route path="/crm/agents">
+          <Agents 
+            customer={currentUser.type === "customer" ? currentUser.data : { id: currentUser.data.customerId }}
+          />
+        </Route>
+        <Route>
+          <Dashboard 
+            customer={currentUser.type === "customer" ? currentUser.data : null}
+            user={currentUser.type === "user" ? currentUser.data : null}
+            userType={currentUser.type}
+          />
+        </Route>
+      </Switch>
+    </DashboardLayout>
   );
 }

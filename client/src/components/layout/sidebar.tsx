@@ -1,96 +1,121 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
-import { Truck, LayoutDashboard, Users, UserCog, Settings, LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import type { User } from "@shared/schema";
+import { 
+  LayoutDashboard, 
+  Package, 
+  Users, 
+  Truck, 
+  DollarSign, 
+  BarChart3, 
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  LogOut
+} from "lucide-react";
 
-export function Sidebar() {
+interface SidebarProps {
+  onLogout: () => void;
+  userType: "customer" | "user";
+  userName?: string;
+}
+
+const customerNavItems = [
+  { icon: LayoutDashboard, label: "Dashboard", href: "/crm/dashboard" },
+  { icon: Package, label: "Vehicle Leads", href: "/crm/leads" },
+  { icon: Users, label: "Broker Agents", href: "/crm/agents" },
+  { icon: Truck, label: "Carriers", href: "/crm/carriers" },
+  { icon: DollarSign, label: "Financial", href: "/crm/financial" },
+  { icon: BarChart3, label: "Reports", href: "/crm/reports" },
+  { icon: Settings, label: "Settings", href: "/crm/settings" },
+];
+
+const agentNavItems = [
+  { icon: LayoutDashboard, label: "Dashboard", href: "/crm/dashboard" },
+  { icon: Package, label: "My Leads", href: "/crm/my-leads" },
+  { icon: Truck, label: "Find Carriers", href: "/crm/carriers" },
+  { icon: DollarSign, label: "My Commissions", href: "/crm/commissions" },
+  { icon: Settings, label: "Profile", href: "/crm/profile" },
+];
+
+function Sidebar({ onLogout, userType, userName }: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [location] = useLocation();
-  const { user } = useAuth() as { user: User | null };
-
-  const navigation = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Customers", href: "/customers", icon: Users },
-    { name: "User Management", href: "/users", icon: UserCog },
-    { name: "Settings", href: "/settings", icon: Settings },
-  ];
-
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
-  };
-
-  const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName || !lastName) return "SA";
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
-  };
+  
+  const navItems = userType === "customer" ? customerNavItems : agentNavItems;
 
   return (
-    <div className="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col">
-      {/* Logo/Brand */}
-      <div className="p-6 border-b border-secondary-200">
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center mr-3">
-            <Truck className="text-white" size={20} />
+    <div className={cn(
+      "flex flex-col h-screen bg-white border-r border-gray-200 transition-all duration-300",
+      isCollapsed ? "w-16" : "w-64"
+    )}>
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        {!isCollapsed && (
+          <div className="flex items-center space-x-2">
+            <Truck className="h-6 w-6 text-primary-600" />
+            <span className="font-bold text-lg text-gray-900">VehicleCRM</span>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-secondary-900">Server Panel</h2>
-            <p className="text-xs text-secondary-600">Admin Dashboard</p>
-          </div>
-        </div>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="h-8 w-8 p-0"
+        >
+          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </Button>
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="mt-6 flex-1">
-        <div className="px-4 space-y-2">
-          {navigation.map((item) => {
-            const isActive = location === item.href;
-            return (
-              <Link key={item.name} href={item.href}>
-                <div
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-                    isActive
-                      ? "bg-primary-50 text-primary-700 border-r-2 border-primary-500"
-                      : "text-secondary-700 hover:bg-secondary-50"
-                  }`}
-                >
-                  <item.icon className="mr-3" size={20} />
-                  {item.name}
-                </div>
-              </Link>
-            );
-          })}
+      {/* User Info */}
+      {!isCollapsed && userName && (
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
+          <p className="text-xs text-gray-500 capitalize">{userType === "customer" ? "Manager" : "Agent"}</p>
         </div>
+      )}
+
+      {/* Navigation */}
+      <nav className="flex-1 p-2 space-y-1">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location === item.href;
+          
+          return (
+            <Link key={item.href} href={item.href}>
+              <Button
+                variant={isActive ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full justify-start h-10",
+                  isCollapsed ? "px-2" : "px-3",
+                  isActive ? "bg-primary-50 text-primary-700 border-primary-200" : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                )}
+              >
+                <Icon className={cn("h-4 w-4", isCollapsed ? "" : "mr-3")} />
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
+              </Button>
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* User Profile */}
-      <div className="p-4 border-t border-secondary-200 bg-white">
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center mr-3">
-            <span className="text-white text-sm font-medium">
-              {getInitials(user?.firstName, user?.lastName)}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-secondary-900 truncate">
-              {user?.firstName && user?.lastName 
-                ? `${user.firstName} ${user.lastName}`
-                : "Server Admin"
-              }
-            </p>
-            <p className="text-xs text-secondary-600 truncate">
-              {user?.email || "admin@example.com"}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-secondary-400 hover:text-secondary-600"
-          >
-            <LogOut size={16} />
-          </Button>
-        </div>
+      {/* Logout */}
+      <div className="p-2 border-t border-gray-200">
+        <Button
+          variant="ghost"
+          onClick={onLogout}
+          className={cn(
+            "w-full justify-start h-10 text-red-600 hover:text-red-700 hover:bg-red-50",
+            isCollapsed ? "px-2" : "px-3"
+          )}
+        >
+          <LogOut className={cn("h-4 w-4", isCollapsed ? "" : "mr-3")} />
+          {!isCollapsed && <span>Logout</span>}
+        </Button>
       </div>
     </div>
   );
 }
+
+export default Sidebar;
