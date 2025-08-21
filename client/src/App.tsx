@@ -17,6 +17,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/crm" component={CRMPortal} />
+      <Route path="/crm-portal" component={CRMPortal} />
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
