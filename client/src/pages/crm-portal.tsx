@@ -50,6 +50,30 @@ export default function CRMPortal() {
             customer={currentUser.type === "customer" ? currentUser.data : { id: currentUser.data.customerId }}
           />
         </Route>
+        <Route path="/crm/carriers">
+          <div className="p-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Carriers</h1>
+            <p className="text-gray-600">Vehicle carrier management coming soon...</p>
+          </div>
+        </Route>
+        <Route path="/crm/financial">
+          <div className="p-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Financial</h1>
+            <p className="text-gray-600">Financial management coming soon...</p>
+          </div>
+        </Route>
+        <Route path="/crm/reports">
+          <div className="p-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Reports</h1>
+            <p className="text-gray-600">Reports and analytics coming soon...</p>
+          </div>
+        </Route>
+        <Route path="/crm/settings">
+          <div className="p-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Settings</h1>
+            <p className="text-gray-600">Settings page coming soon...</p>
+          </div>
+        </Route>
         <Route>
           <Dashboard 
             customer={currentUser.type === "customer" ? currentUser.data : null}

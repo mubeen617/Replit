@@ -83,7 +83,7 @@ function Sidebar({ onLogout, userType, userName }: SidebarProps) {
           const isActive = location === item.href;
           
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} asChild>
               <Button
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(
