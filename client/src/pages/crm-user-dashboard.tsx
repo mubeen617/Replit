@@ -77,7 +77,7 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
                 <h1 className="text-2xl font-bold text-gray-900">
                   Welcome, {user.firstName}
                 </h1>
-                <p className="text-sm text-gray-600">Broker Agent Dashboard</p>
+                <p className="text-sm text-gray-600">Vehicle Broker Agent Dashboard</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -153,9 +153,9 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
         {/* Current Leads */}
         <Card>
           <CardHeader>
-            <CardTitle>My Leads</CardTitle>
+            <CardTitle>My Vehicle Shipping Leads</CardTitle>
             <CardDescription>
-              Your assigned leads and freight opportunities
+              Your assigned vehicle shipping leads and opportunities
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -163,7 +163,7 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
               <div className="text-center py-12 text-gray-500">
                 <Package className="h-16 w-16 mx-auto mb-4 text-gray-400" />
                 <h3 className="text-xl font-medium mb-2">No leads assigned</h3>
-                <p className="mb-6">You don't have any freight leads assigned at the moment</p>
+                <p className="mb-6">You don't have any vehicle shipping leads assigned at the moment</p>
                 <div className="text-sm text-gray-400">
                   Contact your broker manager for lead assignments
                 </div>
@@ -216,15 +216,15 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Find Carriers</CardTitle>
+              <CardTitle className="text-lg">Find Vehicle Carriers</CardTitle>
               <CardDescription>
-                Search for available trucks and carriers
+                Search for available vehicle transport carriers
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="w-full">
                 <Truck className="h-4 w-4 mr-2" />
-                Search Carriers
+                Search Vehicle Carriers
               </Button>
             </CardContent>
           </Card>

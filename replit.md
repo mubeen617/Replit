@@ -1,14 +1,15 @@
 # Overview
 
-This is a full-stack web application built for freight brokerage CRM administration. It's a modern React-based admin dashboard that allows management of brokerage companies and their broker agents. The application uses a monolithic architecture with a Node.js/Express backend serving both API endpoints and static frontend assets.
+This is a full-stack web application built for vehicle brokerage CRM administration. It's a modern React-based admin dashboard that allows management of vehicle brokerage companies and their broker agents. The application uses a monolithic architecture with a Node.js/Express backend serving both API endpoints and static frontend assets.
 
-The system provides authentication via Replit Auth for the Server Panel, plus a separate CRM portal with email/password authentication for brokers. It's designed for freight brokers who receive shipping leads and distribute them to their broker agents to find carriers and arrange shipments. The system handles multi-tenant scenarios where each brokerage company has its own set of broker agents with different roles and permissions.
+The system provides authentication via Replit Auth for the Server Panel, plus a separate CRM portal with email/password authentication for vehicle brokers. It's designed for vehicle brokers who receive vehicle shipping leads and distribute them to their broker agents to find carriers and arrange vehicle shipments. The system handles multi-tenant scenarios where each vehicle brokerage company has its own set of broker agents with different roles and permissions.
 
-**Recent Update (August 20, 2025)**: Added complete CRM portal system with secure password authentication for freight brokers. The system now includes:
+**Recent Update (August 21, 2025)**: Added external API lead fetching system for vehicle shipping leads. The system now includes:
 - CRM login page with separate authentication for broker managers and broker agents
 - Broker manager dashboard for lead distribution and team management  
-- Broker agent dashboard for working leads and finding carriers
-- Role-based interfaces reflecting freight brokerage workflow (leads, carriers, commissions)
+- Broker agent dashboard for working vehicle shipping leads and finding carriers
+- Role-based interfaces reflecting vehicle brokerage workflow (leads, carriers, commissions)
+- External API integration for automatically importing vehicle shipping leads with customer isolation
 - All passwords are hashed using bcrypt before storage for security
 
 # User Preferences

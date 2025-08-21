@@ -103,7 +103,7 @@ export const insertCustomerUserSchema = createInsertSchema(customerUsers).pick({
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
-// Leads table for freight opportunities
+// Leads table for vehicle shipping opportunities
 export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   customerId: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
@@ -116,8 +116,8 @@ export const leads = pgTable("leads", {
   customerRate: varchar("customer_rate"), // Rate customer is paying
   carrierRate: varchar("carrier_rate"), // Rate to pay carrier
   weight: varchar("weight"),
-  commodity: varchar("commodity"),
-  equipment: varchar("equipment"), // Truck type needed
+  vehicleType: varchar("vehicle_type"), // Car, truck, motorcycle, etc.
+  transportType: varchar("transport_type"), // Open, enclosed transport
   status: varchar("status").default("available").notNull(), // available, assigned, booked, completed
   priority: varchar("priority").default("normal").notNull(), // low, normal, high, urgent
   notes: varchar("notes"),

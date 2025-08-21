@@ -18,7 +18,7 @@ export default function Landing() {
                 <Truck className="text-white text-2xl" size={32} />
               </div>
               <h1 className="text-2xl font-bold text-secondary-900 mb-2">Server Panel</h1>
-              <p className="text-secondary-600">Truck Dispatch CRM Administration</p>
+              <p className="text-secondary-600">Vehicle Brokerage CRM Administration</p>
             </div>
 
             {/* Login Button */}

@@ -126,10 +126,10 @@ export default function CRMLogin({ onLogin }: CRMLoginProps) {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Truck Dispatch CRM
+            Vehicle Brokerage CRM
           </h1>
           <p className="text-gray-600">
-            Sign in to access your dispatch portal
+            Sign in to access your vehicle brokerage portal
           </p>
         </div>
 

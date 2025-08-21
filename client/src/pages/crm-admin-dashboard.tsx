@@ -182,7 +182,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                 <h1 className="text-2xl font-bold text-gray-900">
                   {customer.name}
                 </h1>
-                <p className="text-sm text-gray-600">Broker Manager Dashboard</p>
+                <p className="text-sm text-gray-600">Vehicle Broker Manager Dashboard</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -223,7 +223,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
             <CardContent>
               <div className="text-2xl font-bold">{stats?.activeLeads || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Available for brokers
+                Vehicle shipments available
               </p>
             </CardContent>
           </Card>
@@ -249,7 +249,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
             <CardContent>
               <div className="text-2xl font-bold">{stats?.conversionRate || 0}%</div>
               <p className="text-xs text-muted-foreground">
-                Leads to bookings
+                Vehicle leads to bookings
               </p>
             </CardContent>
           </Card>
@@ -258,7 +258,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
         {/* Leads Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Leads Management</h2>
+            <h2 className="text-xl font-bold text-gray-900">Vehicle Shipping Leads</h2>
             <div className="flex gap-2">
               <Dialog open={isApiDialogOpen} onOpenChange={setIsApiDialogOpen}>
                 <DialogTrigger asChild>
@@ -271,7 +271,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                   <DialogHeader>
                     <DialogTitle>Fetch Leads from API</DialogTitle>
                     <DialogDescription>
-                      Connect to an external API to automatically import new leads into your system.
+                      Connect to an external API to automatically import new vehicle shipping leads into your system.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -279,7 +279,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                       <Label htmlFor="endpoint">API Endpoint URL</Label>
                       <Input
                         id="endpoint"
-                        placeholder="https://api.example.com/leads"
+                        placeholder="https://api.vehicleshipping.com/leads"
                         value={apiEndpoint}
                         onChange={(e) => setApiEndpoint(e.target.value)}
                       />
@@ -322,7 +322,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
             <CardHeader>
               <CardTitle>Recent Leads</CardTitle>
               <CardDescription>
-                Manage and distribute leads to your broker agents
+                Manage and distribute vehicle shipping leads to your broker agents
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -331,8 +331,8 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
               ) : leads.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No leads available</p>
-                  <p className="text-sm">Use the "Fetch Leads" button to import leads from external APIs</p>
+                  <p>No vehicle shipping leads available</p>
+                  <p className="text-sm">Use the "Fetch Leads" button to import vehicle shipping leads from external APIs</p>
                 </div>
               ) : (
                 <Table>
@@ -341,7 +341,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                       <TableHead>Lead #</TableHead>
                       <TableHead>Route</TableHead>
                       <TableHead>Pickup Date</TableHead>
-                      <TableHead>Equipment</TableHead>
+                      <TableHead>Vehicle Type</TableHead>
                       <TableHead>Rate</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Assigned To</TableHead>
@@ -361,7 +361,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                           </div>
                         </TableCell>
                         <TableCell>{new Date(lead.pickupDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{lead.equipment || 'Any'}</TableCell>
+                        <TableCell>{lead.vehicleType || 'Any Vehicle'}</TableCell>
                         <TableCell>{lead.customerRate ? `$${lead.customerRate}` : 'TBD'}</TableCell>
                         <TableCell>
                           <Badge className={`${
@@ -427,9 +427,9 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>Broker Agents</CardTitle>
+                <CardTitle>Vehicle Broker Agents</CardTitle>
                 <CardDescription>
-                  Manage your broker agents and their access levels
+                  Manage your vehicle broker agents and their access levels
                 </CardDescription>
               </div>
               <Button>
@@ -444,8 +444,8 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
             ) : users.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium mb-2">No broker agents yet</h3>
-                <p className="mb-4">Start by adding your first broker agent</p>
+                <h3 className="text-lg font-medium mb-2">No vehicle broker agents yet</h3>
+                <p className="mb-4">Start by adding your first vehicle broker agent</p>
                 <Button>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Add First Broker
