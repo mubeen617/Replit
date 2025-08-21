@@ -4,12 +4,15 @@ This is a full-stack web application built for vehicle brokerage CRM administrat
 
 The system provides authentication via Replit Auth for the Server Panel, plus a separate CRM portal with email/password authentication for vehicle brokers. It's designed for vehicle brokers who receive vehicle shipping leads and distribute them to their broker agents to find carriers and arrange vehicle shipments. The system handles multi-tenant scenarios where each vehicle brokerage company has its own set of broker agents with different roles and permissions.
 
-**Recent Update (August 21, 2025)**: Added external API lead fetching system for vehicle shipping leads. The system now includes:
+**Recent Update (August 21, 2025)**: Successfully converted from freight brokerage to vehicle brokerage system with external API lead fetching. The system now includes:
 - CRM login page with separate authentication for broker managers and broker agents
 - Broker manager dashboard for lead distribution and team management  
 - Broker agent dashboard for working vehicle shipping leads and finding carriers
 - Role-based interfaces reflecting vehicle brokerage workflow (leads, carriers, commissions)
 - External API integration for automatically importing vehicle shipping leads with customer isolation
+- Database schema updated to use vehicle_type and transport_type instead of commodity/equipment
+- Complete terminology conversion from freight to vehicle brokerage throughout the system
+- Demo accounts available for testing the vehicle brokerage workflow
 - All passwords are hashed using bcrypt before storage for security
 
 # User Preferences
@@ -40,7 +43,7 @@ The schema includes four main entities:
 - **Customers**: Organizations/companies that use the trucking services
 - **CustomerUsers**: Individual users belonging to customer organizations with role-based access
 
-The database uses PostgreSQL-specific features like UUID generation and JSONB for session data. Foreign key relationships maintain data integrity between customers and their users.
+The database uses PostgreSQL-specific features like UUID generation and JSONB for session data. Foreign key relationships maintain data integrity between customers and their users. The leads table now uses vehicle_type (sedan, SUV, truck) and transport_type (open, enclosed) fields to support vehicle shipping operations.
 
 ## Authentication & Authorization
 - **Provider**: Replit Auth using OpenID Connect protocol for secure authentication
