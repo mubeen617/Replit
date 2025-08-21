@@ -206,11 +206,7 @@ export default function Customers() {
 
   return (
     <div className="flex h-screen bg-secondary-100">
-      <Sidebar 
-        onLogout={() => window.location.href = "/api/logout"} 
-        userType="customer"
-        userName="Admin User"
-      />
+      <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
           title="Customer Management" 
