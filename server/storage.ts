@@ -2,12 +2,15 @@ import {
   users,
   customers,
   customerUsers,
+  leads,
   type User,
   type UpsertUser,
   type Customer,
   type InsertCustomer,
   type CustomerUser,
   type InsertCustomerUser,
+  type Lead,
+  type InsertLead,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, ilike, or, and, count } from "drizzle-orm";
@@ -41,9 +44,18 @@ export interface IStorage {
     issues: number;
   }>;
   
-  // Authentication helpers for future CRM portal
+  // Authentication helpers for CRM portal
   verifyCustomerPassword(email: string, password: string): Promise<Customer | null>;
   verifyUserPassword(email: string, password: string): Promise<CustomerUser | null>;
+  
+  // Lead operations
+  getLeads(customerId: string, assignedUserId?: string): Promise<Lead[]>;
+  getLeadById(id: string, customerId: string): Promise<Lead | undefined>;
+  createLead(lead: InsertLead): Promise<Lead>;
+  updateLead(id: string, customerId: string, lead: Partial<InsertLead>): Promise<Lead>;
+  deleteLead(id: string, customerId: string): Promise<void>;
+  assignLead(leadId: string, customerId: string, userId: string): Promise<Lead>;
+  fetchLeadsFromAPI(customerId: string, apiEndpoint: string, apiKey?: string): Promise<Lead[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -259,6 +271,129 @@ export class DatabaseStorage implements IStorage {
     }
     
     return user;
+  }
+
+  // Lead operations
+  async getLeads(customerId: string, assignedUserId?: string): Promise<Lead[]> {
+    const conditions = [eq(leads.customerId, customerId)];
+    if (assignedUserId) {
+      conditions.push(eq(leads.assignedUserId, assignedUserId));
+    }
+    
+    return await db
+      .select()
+      .from(leads)
+      .where(and(...conditions))
+      .orderBy(desc(leads.createdAt));
+  }
+
+  async getLeadById(id: string, customerId: string): Promise<Lead | undefined> {
+    const [lead] = await db
+      .select()
+      .from(leads)
+      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)));
+    return lead;
+  }
+
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const [newLead] = await db
+      .insert(leads)
+      .values(lead)
+      .returning();
+    return newLead;
+  }
+
+  async updateLead(id: string, customerId: string, lead: Partial<InsertLead>): Promise<Lead> {
+    const [updatedLead] = await db
+      .update(leads)
+      .set({ ...lead, updatedAt: new Date() })
+      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)))
+      .returning();
+    return updatedLead;
+  }
+
+  async deleteLead(id: string, customerId: string): Promise<void> {
+    await db
+      .delete(leads)
+      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)));
+  }
+
+  async assignLead(leadId: string, customerId: string, userId: string): Promise<Lead> {
+    return await this.updateLead(leadId, customerId, { 
+      assignedUserId: userId,
+      status: "assigned" 
+    });
+  }
+
+  async fetchLeadsFromAPI(customerId: string, apiEndpoint: string, apiKey?: string): Promise<Lead[]> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
+      const response = await fetch(apiEndpoint, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const fetchedLeads: Lead[] = [];
+
+      // Process API response - this is a generic structure, can be customized per API
+      const leadsData = Array.isArray(data) ? data : data.leads || data.data || [];
+      
+      for (const leadData of leadsData) {
+        // Skip if lead already exists based on external ID
+        if (leadData.id || leadData.external_id) {
+          const existing = await db
+            .select()
+            .from(leads)
+            .where(and(
+              eq(leads.customerId, customerId),
+              eq(leads.externalId, leadData.id || leadData.external_id)
+            ));
+          
+          if (existing.length > 0) {
+            continue;
+          }
+        }
+
+        // Map API data to our lead structure
+        const newLead: InsertLead = {
+          customerId,
+          leadNumber: leadData.reference || leadData.id || `API-${Date.now()}`,
+          origin: leadData.origin || leadData.pickup_location || '',
+          destination: leadData.destination || leadData.delivery_location || '',
+          pickupDate: new Date(leadData.pickup_date || leadData.pickup_time || Date.now()),
+          deliveryDate: leadData.delivery_date ? new Date(leadData.delivery_date) : undefined,
+          customerRate: leadData.rate || leadData.price || leadData.customer_rate,
+          weight: leadData.weight,
+          commodity: leadData.commodity || leadData.cargo_type,
+          equipment: leadData.equipment || leadData.truck_type,
+          status: "available",
+          priority: leadData.priority || "normal",
+          notes: leadData.notes || leadData.description,
+          source: apiEndpoint,
+          externalId: leadData.id || leadData.external_id,
+        };
+
+        const createdLead = await this.createLead(newLead);
+        fetchedLeads.push(createdLead);
+      }
+
+      return fetchedLeads;
+    } catch (error) {
+      console.error("Error fetching leads from API:", error);
+      throw error;
+    }
   }
 }
 

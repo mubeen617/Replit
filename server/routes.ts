@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertCustomerSchema, insertCustomerUserSchema } from "@shared/schema";
+import { insertCustomerSchema, insertCustomerUserSchema, insertLeadSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -205,24 +205,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/crm/leads/:customerId', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const { assignedUserId } = req.query;
+      const leads = await storage.getLeads(customerId, assignedUserId as string);
+      res.json(leads);
+    } catch (error) {
+      console.error("Error fetching leads:", error);
+      res.status(500).json({ message: "Failed to fetch leads" });
+    }
+  });
+
   app.get('/api/crm/user-loads/:userId', async (req, res) => {
     try {
-      // For now, return empty array - loads will be implemented later
-      res.json([]);
+      const { userId } = req.params;
+      // Get the user to find their customer
+      const user = await storage.getCustomerUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const leads = await storage.getLeads(user.customerId, userId);
+      res.json(leads);
     } catch (error) {
       console.error("Error fetching user loads:", error);
       res.status(500).json({ message: "Failed to fetch loads" });
     }
   });
 
+  app.post('/api/crm/leads/:customerId/fetch', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const { apiEndpoint, apiKey } = req.body;
+      
+      if (!apiEndpoint) {
+        return res.status(400).json({ message: "API endpoint is required" });
+      }
+
+      const fetchedLeads = await storage.fetchLeadsFromAPI(customerId, apiEndpoint, apiKey);
+      res.json({ 
+        success: true, 
+        message: `Successfully fetched ${fetchedLeads.length} new leads`,
+        leads: fetchedLeads 
+      });
+    } catch (error) {
+      console.error("Error fetching leads from API:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch leads from API", 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.post('/api/crm/leads/:customerId', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const leadData = insertLeadSchema.parse({
+        ...req.body,
+        customerId
+      });
+      
+      const lead = await storage.createLead(leadData);
+      res.status(201).json(lead);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid lead data", errors: error.errors });
+      }
+      console.error("Error creating lead:", error);
+      res.status(500).json({ message: "Failed to create lead" });
+    }
+  });
+
+  app.put('/api/crm/leads/:customerId/:leadId/assign', async (req, res) => {
+    try {
+      const { customerId, leadId } = req.params;
+      const { userId } = req.body;
+      
+      const lead = await storage.assignLead(leadId, customerId, userId);
+      res.json(lead);
+    } catch (error) {
+      console.error("Error assigning lead:", error);
+      res.status(500).json({ message: "Failed to assign lead" });
+    }
+  });
+
   app.get('/api/crm/admin-stats/:customerId', async (req, res) => {
     try {
-      // For now, return basic stats - can be expanded later
+      const { customerId } = req.params;
+      const leads = await storage.getLeads(customerId);
+      const users = await storage.getCustomerUsers(customerId);
+      
+      const activeLeads = leads.filter(lead => lead.status === 'available' || lead.status === 'assigned').length;
+      const bookedLeads = leads.filter(lead => lead.status === 'booked').length;
+      const totalLeads = leads.length;
+      const conversionRate = totalLeads > 0 ? Math.round((bookedLeads / totalLeads) * 100) : 0;
+      
       res.json({
-        totalUsers: 0,
-        activeLoads: 0,
-        revenue: 0,
-        performance: 100
+        totalUsers: users.length,
+        activeLeads,
+        totalCommission: 0, // Calculate from leads with rates
+        conversionRate
       });
     } catch (error) {
       console.error("Error fetching admin stats:", error);
@@ -232,12 +315,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/crm/user-stats/:userId', async (req, res) => {
     try {
-      // For now, return basic stats - can be expanded later
+      const { userId } = req.params;
+      const user = await storage.getCustomerUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const userLeads = await storage.getLeads(user.customerId, userId);
+      const bookedLeads = userLeads.filter(lead => lead.status === 'booked').length;
+      const totalLeads = userLeads.length;
+      const successRate = totalLeads > 0 ? Math.round((bookedLeads / totalLeads) * 100) : 0;
+      
       res.json({
-        activeLoads: 0,
-        completed: 0,
-        milesDriven: 0,
-        onTimeRate: 100
+        activeLeads: userLeads.filter(lead => lead.status === 'assigned').length,
+        booked: bookedLeads,
+        commission: 0, // Calculate from commission rates
+        successRate
       });
     } catch (error) {
       console.error("Error fetching user stats:", error);

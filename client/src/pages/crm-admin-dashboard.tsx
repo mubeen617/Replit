@@ -36,8 +36,22 @@ import {
   Settings,
   BarChart3,
   UserPlus,
+  Download,
+  ExternalLink,
 } from "lucide-react";
-import type { Customer, CustomerUser } from "@shared/schema";
+import type { Customer, CustomerUser, Lead } from "@shared/schema";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CRMAdminDashboardProps {
   customer: Customer;
@@ -47,13 +61,52 @@ interface CRMAdminDashboardProps {
 export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashboardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isApiDialogOpen, setIsApiDialogOpen] = useState(false);
+  const [apiEndpoint, setApiEndpoint] = useState("");
+  const [apiKey, setApiKey] = useState("");
 
   const { data: users = [], isLoading } = useQuery<CustomerUser[]>({
     queryKey: ["/api/crm/users", customer.id],
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{
+    totalUsers: number;
+    activeLeads: number;
+    totalCommission: number;
+    conversionRate: number;
+  }>({
     queryKey: ["/api/crm/admin-stats", customer.id],
+  });
+
+  const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
+    queryKey: ["/api/crm/leads", customer.id],
+  });
+
+  const fetchLeadsMutation = useMutation({
+    mutationFn: async ({ endpoint, key }: { endpoint: string; key?: string }) => {
+      return await apiRequest(`/api/crm/leads/${customer.id}/fetch`, "POST", {
+        apiEndpoint: endpoint,
+        apiKey: key,
+      });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Leads Fetched Successfully",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/admin-stats"] });
+      setIsApiDialogOpen(false);
+      setApiEndpoint("");
+      setApiKey("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error Fetching Leads",
+        description: error.message || "Failed to fetch leads from API",
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteUserMutation = useMutation({
@@ -80,6 +133,21 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
     if (confirm("Are you sure you want to delete this user?")) {
       deleteUserMutation.mutate(userId);
     }
+  };
+
+  const handleFetchLeads = () => {
+    if (!apiEndpoint.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an API endpoint",
+        variant: "destructive",
+      });
+      return;
+    }
+    fetchLeadsMutation.mutate({ 
+      endpoint: apiEndpoint.trim(), 
+      key: apiKey.trim() || undefined 
+    });
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -153,7 +221,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{stats?.activeLeads || 0}</div>
               <p className="text-xs text-muted-foreground">
                 Available for brokers
               </p>
@@ -166,7 +234,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$0</div>
+              <div className="text-2xl font-bold">${stats?.totalCommission || 0}</div>
               <p className="text-xs text-muted-foreground">
                 This month
               </p>
@@ -179,10 +247,177 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0%</div>
+              <div className="text-2xl font-bold">{stats?.conversionRate || 0}%</div>
               <p className="text-xs text-muted-foreground">
                 Leads to bookings
               </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Leads Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Leads Management</h2>
+            <div className="flex gap-2">
+              <Dialog open={isApiDialogOpen} onOpenChange={setIsApiDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Download className="h-4 w-4 mr-2" />
+                    Fetch Leads
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Fetch Leads from API</DialogTitle>
+                    <DialogDescription>
+                      Connect to an external API to automatically import new leads into your system.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="endpoint">API Endpoint URL</Label>
+                      <Input
+                        id="endpoint"
+                        placeholder="https://api.example.com/leads"
+                        value={apiEndpoint}
+                        onChange={(e) => setApiEndpoint(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="apikey">API Key (Optional)</Label>
+                      <Input
+                        id="apikey"
+                        type="password"
+                        placeholder="Bearer token or API key"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsApiDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleFetchLeads} 
+                      disabled={fetchLeadsMutation.isPending}
+                    >
+                      {fetchLeadsMutation.isPending && (
+                        <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                      )}
+                      Fetch Leads
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Lead
+              </Button>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Leads</CardTitle>
+              <CardDescription>
+                Manage and distribute leads to your broker agents
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {leadsLoading ? (
+                <div className="text-center py-8">Loading leads...</div>
+              ) : leads.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No leads available</p>
+                  <p className="text-sm">Use the "Fetch Leads" button to import leads from external APIs</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Lead #</TableHead>
+                      <TableHead>Route</TableHead>
+                      <TableHead>Pickup Date</TableHead>
+                      <TableHead>Equipment</TableHead>
+                      <TableHead>Rate</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Assigned To</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {leads.slice(0, 10).map((lead) => (
+                      <TableRow key={lead.id}>
+                        <TableCell className="font-medium">{lead.leadNumber}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center text-sm">
+                            <span className="font-medium">{lead.origin}</span>
+                            <span className="mx-2 text-gray-400">→</span>
+                            <span>{lead.destination}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{new Date(lead.pickupDate).toLocaleDateString()}</TableCell>
+                        <TableCell>{lead.equipment || 'Any'}</TableCell>
+                        <TableCell>{lead.customerRate ? `$${lead.customerRate}` : 'TBD'}</TableCell>
+                        <TableCell>
+                          <Badge className={`${
+                            lead.status === 'available' ? 'bg-green-100 text-green-800' :
+                            lead.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                            lead.status === 'booked' ? 'bg-purple-100 text-purple-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {lead.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {lead.assignedUserId ? 'Assigned' : 'Unassigned'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center text-sm">
+                            {lead.source ? (
+                              <>
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                <span className="truncate max-w-[100px]" title={lead.source}>
+                                  {lead.source.replace(/^https?:\/\//, '').split('/')[0]}
+                                </span>
+                              </>
+                            ) : (
+                              'Manual'
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                Assign to Agent
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                Edit Lead
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600">
+                                Delete Lead
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </div>

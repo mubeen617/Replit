@@ -67,13 +67,15 @@ export const customerUsers = pgTable("customer_users", {
 // Relations
 export const customersRelations = relations(customers, ({ many }) => ({
   users: many(customerUsers),
+  leads: many(leads),
 }));
 
-export const customerUsersRelations = relations(customerUsers, ({ one }) => ({
+export const customerUsersRelations = relations(customerUsers, ({ one, many }) => ({
   customer: one(customers, {
     fields: [customerUsers.customerId],
     references: [customers.id],
   }),
+  assignedLeads: many(leads),
 }));
 
 // Schemas for validation
@@ -100,6 +102,50 @@ export const insertCustomerUserSchema = createInsertSchema(customerUsers).pick({
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Leads table for freight opportunities
+export const leads = pgTable("leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
+  assignedUserId: varchar("assigned_user_id").references(() => customerUsers.id, { onDelete: "set null" }),
+  leadNumber: varchar("lead_number").notNull(),
+  origin: varchar("origin").notNull(),
+  destination: varchar("destination").notNull(),
+  pickupDate: timestamp("pickup_date").notNull(),
+  deliveryDate: timestamp("delivery_date"),
+  customerRate: varchar("customer_rate"), // Rate customer is paying
+  carrierRate: varchar("carrier_rate"), // Rate to pay carrier
+  weight: varchar("weight"),
+  commodity: varchar("commodity"),
+  equipment: varchar("equipment"), // Truck type needed
+  status: varchar("status").default("available").notNull(), // available, assigned, booked, completed
+  priority: varchar("priority").default("normal").notNull(), // low, normal, high, urgent
+  notes: varchar("notes"),
+  source: varchar("source"), // API source where lead came from
+  externalId: varchar("external_id"), // ID from external system
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const leadsRelations = relations(leads, ({ one }) => ({
+  customer: one(customers, {
+    fields: [leads.customerId],
+    references: [customers.id],
+  }),
+  assignedUser: one(customerUsers, {
+    fields: [leads.assignedUserId],
+    references: [customerUsers.id],
+  }),
+}));
+
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type Lead = typeof leads.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type CustomerUser = typeof customerUsers.$inferSelect;
