@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import Sidebar from "@/components/layout/sidebar";
+import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Users, UserCheck, Clock, AlertTriangle } from "lucide-react";
 
@@ -75,7 +75,11 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-secondary-100">
-      <Sidebar />
+      <Sidebar 
+        onLogout={() => window.location.href = "/api/logout"} 
+        userType="customer"
+        userName="Admin User"
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
           title="Dashboard" 

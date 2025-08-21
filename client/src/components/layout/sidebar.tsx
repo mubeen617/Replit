@@ -118,4 +118,4 @@ function Sidebar({ onLogout, userType, userName }: SidebarProps) {
   );
 }
 
-export default Sidebar;
+export { Sidebar };
