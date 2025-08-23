@@ -79,7 +79,7 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
         title: "Quote Converted",
         description: "Quote has been converted to an order",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId, agentId] });
     },
     onError: (error: any) => {
       toast({
@@ -99,7 +99,7 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
         title: "Quote Sent",
         description: "Quote has been sent to the customer",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId, agentId] });
     },
     onError: (error: any) => {
       toast({

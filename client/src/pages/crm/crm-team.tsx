@@ -79,7 +79,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
         title: "User Added",
         description: "New broker agent has been added to your team",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", userId] });
       setIsAddUserOpen(false);
     },
     onError: (error: any) => {
@@ -100,7 +100,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
         title: "User Deleted",
         description: "Broker agent has been removed from your team",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -120,7 +120,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
         title: "User Updated",
         description: "Broker agent information has been updated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", userId] });
     },
     onError: (error: any) => {
       toast({
