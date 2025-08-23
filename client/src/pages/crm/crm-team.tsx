@@ -72,7 +72,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
 
   const addUserMutation = useMutation({
     mutationFn: async (userData: any) => {
-      return await apiRequest("/api/customer-users", "POST", userData);
+      return await apiRequest("POST", "/api/customer-users", userData);
     },
     onSuccess: () => {
       toast({
@@ -93,7 +93,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/customer-users/${userId}`, "DELETE");
+      return await apiRequest("DELETE", `/api/customer-users/${userId}`);
     },
     onSuccess: () => {
       toast({
@@ -113,7 +113,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: any }) => {
-      return await apiRequest(`/api/customer-users/${userId}`, "PATCH", data);
+      return await apiRequest("PATCH", `/api/customer-users/${userId}`, data);
     },
     onSuccess: () => {
       toast({

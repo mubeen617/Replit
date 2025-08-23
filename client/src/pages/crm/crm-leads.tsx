@@ -88,7 +88,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const addLeadMutation = useMutation({
     mutationFn: async (leadData: any) => {
-      return await apiRequest("/api/crm/leads", "POST", leadData);
+      return await apiRequest("POST", "/api/crm/leads", leadData);
     },
     onSuccess: () => {
       toast({
@@ -109,7 +109,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const convertToQuoteMutation = useMutation({
     mutationFn: async (leadId: string) => {
-      return await apiRequest(`/api/crm/leads/${leadId}/convert-to-quote`, "POST");
+      return await apiRequest("POST", `/api/crm/leads/${leadId}/convert-to-quote`);
     },
     onSuccess: () => {
       toast({
@@ -129,7 +129,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const fetchLeadsMutation = useMutation({
     mutationFn: async ({ endpoint, key }: { endpoint: string; key?: string }) => {
-      return await apiRequest(`/api/crm/leads/${userId}/fetch`, "POST", {
+      return await apiRequest("POST", `/api/crm/leads/${userId}/fetch`, {
         apiEndpoint: endpoint,
         apiKey: key,
       });

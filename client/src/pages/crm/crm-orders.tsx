@@ -68,7 +68,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
 
   const sendContractMutation = useMutation({
     mutationFn: async ({ orderId, contractType }: { orderId: string; contractType: string }) => {
-      return await apiRequest(`/api/crm/orders/${orderId}/send-contract`, "POST", { contractType });
+      return await apiRequest("POST", `/api/crm/orders/${orderId}/send-contract`, { contractType });
     },
     onSuccess: () => {
       toast({
@@ -88,7 +88,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
 
   const convertToDispatchMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      return await apiRequest(`/api/crm/orders/${orderId}/convert-to-dispatch`, "POST");
+      return await apiRequest("POST", `/api/crm/orders/${orderId}/convert-to-dispatch`);
     },
     onSuccess: () => {
       toast({
@@ -108,7 +108,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
 
   const markSignedMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      return await apiRequest(`/api/crm/orders/${orderId}/mark-signed`, "POST");
+      return await apiRequest("POST", `/api/crm/orders/${orderId}/mark-signed`);
     },
     onSuccess: () => {
       toast({

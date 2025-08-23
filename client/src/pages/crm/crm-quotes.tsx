@@ -72,7 +72,7 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
 
   const convertToOrderMutation = useMutation({
     mutationFn: async (quoteId: string) => {
-      return await apiRequest(`/api/crm/quotes/${quoteId}/convert-to-order`, "POST");
+      return await apiRequest("POST", `/api/crm/quotes/${quoteId}/convert-to-order`);
     },
     onSuccess: () => {
       toast({
@@ -92,7 +92,7 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
 
   const sendQuoteMutation = useMutation({
     mutationFn: async (quoteId: string) => {
-      return await apiRequest(`/api/crm/quotes/${quoteId}/send`, "POST");
+      return await apiRequest("POST", `/api/crm/quotes/${quoteId}/send`);
     },
     onSuccess: () => {
       toast({

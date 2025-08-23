@@ -72,7 +72,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
 
   const updateDispatchMutation = useMutation({
     mutationFn: async ({ dispatchId, data }: { dispatchId: string; data: any }) => {
-      return await apiRequest(`/api/crm/dispatch/${dispatchId}`, "PATCH", data);
+      return await apiRequest("PATCH", `/api/crm/dispatch/${dispatchId}`, data);
     },
     onSuccess: () => {
       toast({
@@ -93,7 +93,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
 
   const markCompletedMutation = useMutation({
     mutationFn: async (dispatchId: string) => {
-      return await apiRequest(`/api/crm/dispatch/${dispatchId}/complete`, "POST");
+      return await apiRequest("POST", `/api/crm/dispatch/${dispatchId}/complete`);
     },
     onSuccess: () => {
       toast({
@@ -113,7 +113,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ dispatchId, status }: { dispatchId: string; status: string }) => {
-      return await apiRequest(`/api/crm/dispatch/${dispatchId}/status`, "PATCH", { status });
+      return await apiRequest("PATCH", `/api/crm/dispatch/${dispatchId}/status`, { status });
     },
     onSuccess: () => {
       toast({
