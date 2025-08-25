@@ -86,6 +86,29 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
     enabled: userType === "customer",
   });
 
+  // Function to handle zipcode lookup and auto-fill location
+  const handleZipcodeChange = async (zipcode: string, locationType: 'origin' | 'destination') => {
+    if (zipcode.length === 5 && /^\d{5}$/.test(zipcode)) {
+      try {
+        const response = await fetch(`https://api.zippopotam.us/us/${zipcode}`);
+        if (response.ok) {
+          const data = await response.json();
+          const city = data.places[0]['place name'];
+          const state = data.places[0]['state abbreviation'];
+          const location = `${city}, ${state}`;
+          
+          // Update the corresponding location field
+          const locationInput = document.getElementById(locationType) as HTMLInputElement;
+          if (locationInput) {
+            locationInput.value = location;
+          }
+        }
+      } catch (error) {
+        console.log('Zipcode lookup failed:', error);
+      }
+    }
+  };
+
   const addLeadMutation = useMutation({
     mutationFn: async (leadData: any) => {
       return await apiRequest("POST", `/api/crm/leads/${userId}`, leadData);
@@ -170,7 +193,9 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
       contactEmail: formData.get("contactEmail") as string,
       contactPhone: formData.get("contactPhone") as string,
       origin: formData.get("origin") as string,
+      originZipcode: formData.get("originZipcode") as string,
       destination: formData.get("destination") as string,
+      destinationZipcode: formData.get("destinationZipcode") as string,
       pickupDate: new Date(formData.get("pickupDate") as string),
       vehicleYear: (formData.get("vehicleYear") as string) || null,
       vehicleMake: (formData.get("vehicleMake") as string) || null,
@@ -402,26 +427,50 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
                         </div>
                       </div>
                       
-                      <div>
-                        <Label htmlFor="origin">Origin *</Label>
-                        <Input
-                          id="origin"
-                          name="origin"
-                          required
-                          data-testid="input-origin"
-                          placeholder="Los Angeles, CA"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="originZipcode">Origin Zipcode</Label>
+                          <Input
+                            id="originZipcode"
+                            name="originZipcode"
+                            data-testid="input-origin-zipcode"
+                            placeholder="90210"
+                            onChange={(e) => handleZipcodeChange(e.target.value, 'origin')}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="origin">Origin *</Label>
+                          <Input
+                            id="origin"
+                            name="origin"
+                            required
+                            data-testid="input-origin"
+                            placeholder="Los Angeles, CA"
+                          />
+                        </div>
                       </div>
                       
-                      <div>
-                        <Label htmlFor="destination">Destination *</Label>
-                        <Input
-                          id="destination"
-                          name="destination"
-                          required
-                          data-testid="input-destination"
-                          placeholder="New York, NY"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="destinationZipcode">Destination Zipcode</Label>
+                          <Input
+                            id="destinationZipcode"
+                            name="destinationZipcode"
+                            data-testid="input-destination-zipcode"
+                            placeholder="10001"
+                            onChange={(e) => handleZipcodeChange(e.target.value, 'destination')}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="destination">Destination *</Label>
+                          <Input
+                            id="destination"
+                            name="destination"
+                            required
+                            data-testid="input-destination"
+                            placeholder="New York, NY"
+                          />
+                        </div>
                       </div>
                       
                       <div>

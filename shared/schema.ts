@@ -129,7 +129,9 @@ export const leads = pgTable("leads", {
   
   // Location and Timing
   origin: varchar("origin").notNull(),
+  originZipcode: varchar("origin_zipcode"),
   destination: varchar("destination").notNull(),
+  destinationZipcode: varchar("destination_zipcode"),
   pickupDate: timestamp("pickup_date").notNull(),
   deliveryDate: timestamp("delivery_date"),
   
