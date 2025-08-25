@@ -137,9 +137,10 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
     onSuccess: () => {
       toast({
         title: "Lead Converted",
-        description: "Lead has been converted to a quote",
+        description: "Lead has been converted to a quote and moved to Quotes page",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -560,7 +561,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">Loading leads...</div>
-          ) : leads.length === 0 ? (
+          ) : leads.filter(lead => lead.status !== 'converted').length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
               <h3 className="text-xl font-medium mb-2">No leads available</h3>
@@ -587,7 +588,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leads.map((lead) => (
+                  {leads.filter(lead => lead.status !== 'converted').map((lead) => (
                     <TableRow key={lead.id}>
                       <TableCell className="font-medium" data-testid={`text-lead-number-${lead.id}`}>
                         {lead.leadNumber}

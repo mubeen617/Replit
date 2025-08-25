@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertCustomerSchema, insertCustomerUserSchema, insertLeadSchema } from "@shared/schema";
+import { insertCustomerSchema, insertCustomerUserSchema, insertLeadSchema, insertQuoteSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -335,6 +335,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user stats:", error);
       res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // Quote routes
+  app.get('/api/crm/quotes/:customerId', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const quotes = await storage.getQuotes(customerId);
+      res.json(quotes);
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      res.status(500).json({ message: "Failed to fetch quotes" });
+    }
+  });
+
+  app.post('/api/crm/leads/:leadId/convert-to-quote', async (req, res) => {
+    try {
+      const { leadId } = req.params;
+      const quoteData = req.body;
+      
+      // Get customer ID from lead
+      const lead = await storage.getLeadById(leadId, quoteData.customerId || '');
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      const quote = await storage.convertLeadToQuote(leadId, lead.customerId, quoteData);
+      res.json(quote);
+    } catch (error) {
+      console.error("Error converting lead to quote:", error);
+      res.status(500).json({ message: "Failed to convert lead to quote" });
+    }
+  });
+
+  app.post('/api/crm/quotes/:quoteId/convert-to-order', async (req, res) => {
+    try {
+      const { quoteId } = req.params;
+      // TODO: Implement order conversion
+      res.json({ message: "Quote converted to order", quoteId });
+    } catch (error) {
+      console.error("Error converting quote to order:", error);
+      res.status(500).json({ message: "Failed to convert quote to order" });
+    }
+  });
+
+  app.post('/api/crm/quotes/:quoteId/send', async (req, res) => {
+    try {
+      const { quoteId } = req.params;
+      // TODO: Implement quote sending logic
+      res.json({ message: "Quote sent", quoteId });
+    } catch (error) {
+      console.error("Error sending quote:", error);
+      res.status(500).json({ message: "Failed to send quote" });
     }
   });
 

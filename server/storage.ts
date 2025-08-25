@@ -3,6 +3,7 @@ import {
   customers,
   customerUsers,
   leads,
+  quotes,
   type User,
   type UpsertUser,
   type Customer,
@@ -11,6 +12,8 @@ import {
   type InsertCustomerUser,
   type Lead,
   type InsertLead,
+  type Quote,
+  type InsertQuote,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, ilike, or, and, count, sql } from "drizzle-orm";
@@ -56,6 +59,14 @@ export interface IStorage {
   deleteLead(id: string, customerId: string): Promise<void>;
   assignLead(leadId: string, customerId: string, userId: string): Promise<Lead>;
   fetchLeadsFromAPI(customerId: string, apiEndpoint: string, apiKey?: string): Promise<Lead[]>;
+  
+  // Quote operations
+  getQuotes(customerId: string): Promise<Quote[]>;
+  getQuoteById(id: string, customerId: string): Promise<Quote | undefined>;
+  createQuote(quote: InsertQuote): Promise<Quote>;
+  updateQuote(id: string, customerId: string, quote: Partial<InsertQuote>): Promise<Quote>;
+  deleteQuote(id: string, customerId: string): Promise<void>;
+  convertLeadToQuote(leadId: string, customerId: string, quoteData: Partial<InsertQuote>): Promise<Quote>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -422,6 +433,76 @@ export class DatabaseStorage implements IStorage {
       console.error("Error fetching leads from API:", error);
       throw error;
     }
+  }
+
+  // Quote operations
+  async getQuotes(customerId: string): Promise<Quote[]> {
+    return await db
+      .select()
+      .from(quotes)
+      .where(eq(quotes.customerId, customerId))
+      .orderBy(desc(quotes.createdAt));
+  }
+
+  async getQuoteById(id: string, customerId: string): Promise<Quote | undefined> {
+    const [quote] = await db
+      .select()
+      .from(quotes)
+      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)));
+    return quote;
+  }
+
+  async createQuote(quote: InsertQuote): Promise<Quote> {
+    const [newQuote] = await db
+      .insert(quotes)
+      .values(quote)
+      .returning();
+    return newQuote;
+  }
+
+  async updateQuote(id: string, customerId: string, quote: Partial<InsertQuote>): Promise<Quote> {
+    const [updatedQuote] = await db
+      .update(quotes)
+      .set({ ...quote, updatedAt: new Date() })
+      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)))
+      .returning();
+    return updatedQuote;
+  }
+
+  async deleteQuote(id: string, customerId: string): Promise<void> {
+    await db
+      .delete(quotes)
+      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)));
+  }
+
+  async convertLeadToQuote(leadId: string, customerId: string, quoteData: Partial<InsertQuote>): Promise<Quote> {
+    // Get the lead first
+    const lead = await this.getLeadById(leadId, customerId);
+    if (!lead) {
+      throw new Error('Lead not found');
+    }
+
+    // Create quote from lead data
+    const newQuote = await this.createQuote({
+      leadId,
+      customerId,
+      createdByUserId: lead.assignedUserId || '',
+      carrierFees: quoteData.carrierFees || '0',
+      brokerFees: quoteData.brokerFees || '0', 
+      totalTariff: quoteData.totalTariff || '0',
+      pickupPersonName: quoteData.pickupPersonName || lead.contactName,
+      pickupPersonPhone: quoteData.pickupPersonPhone || lead.contactPhone,
+      pickupAddress: quoteData.pickupAddress || lead.origin,
+      dropoffPersonName: quoteData.dropoffPersonName || lead.contactName,
+      dropoffPersonPhone: quoteData.dropoffPersonPhone || lead.contactPhone,
+      dropoffAddress: quoteData.dropoffAddress || lead.destination,
+      ...quoteData,
+    });
+
+    // Update lead status to converted
+    await this.updateLead(leadId, customerId, { status: 'converted' });
+
+    return newQuote;
   }
 }
 
