@@ -172,7 +172,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
       contactPhone: formData.get("contactPhone") as string,
       origin: formData.get("origin") as string,
       destination: formData.get("destination") as string,
-      pickupDate: formData.get("pickupDate") as string,
+      pickupDate: new Date(formData.get("pickupDate") as string),
       vehicleYear: (formData.get("vehicleYear") as string) || null,
       vehicleMake: (formData.get("vehicleMake") as string) || null,
       vehicleModel: (formData.get("vehicleModel") as string) || null,

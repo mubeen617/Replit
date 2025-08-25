@@ -305,6 +305,9 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  pickupDate: z.string().transform((str) => new Date(str)),
+  deliveryDate: z.string().optional().transform((str) => str ? new Date(str) : undefined),
 });
 
 export const insertQuoteSchema = createInsertSchema(quotes).omit({
