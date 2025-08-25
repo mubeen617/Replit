@@ -78,7 +78,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
-    queryKey: ["/api/crm/leads", userId, agentId],
+    queryKey: ["/api/crm/leads", userId],
   });
 
   const { data: teamMembers = [] } = useQuery<CustomerUser[]>({
@@ -95,7 +95,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
         title: "Lead Added",
         description: "New lead has been created successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId] });
       setIsAddLeadOpen(false);
     },
     onError: (error: any) => {
@@ -116,7 +116,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
         title: "Lead Converted",
         description: "Lead has been converted to a quote",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -139,7 +139,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
         title: "Leads Fetched Successfully",
         description: data.message,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId] });
       setIsApiDialogOpen(false);
       setApiEndpoint("");
       setApiKey("");

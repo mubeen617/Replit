@@ -67,7 +67,7 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: quotes = [], isLoading } = useQuery<Quote[]>({
-    queryKey: ["/api/crm/quotes", userId, agentId],
+    queryKey: ["/api/crm/quotes", userId],
   });
 
   const convertToOrderMutation = useMutation({
@@ -79,7 +79,7 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
         title: "Quote Converted",
         description: "Quote has been converted to an order",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -99,7 +99,7 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
         title: "Quote Sent",
         description: "Quote has been sent to the customer",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
     },
     onError: (error: any) => {
       toast({

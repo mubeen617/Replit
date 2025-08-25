@@ -67,7 +67,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: dispatches = [], isLoading } = useQuery<Dispatch[]>({
-    queryKey: ["/api/crm/dispatch", userId, agentId],
+    queryKey: ["/api/crm/dispatch", userId],
   });
 
   const updateDispatchMutation = useMutation({
@@ -79,7 +79,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
         title: "Dispatch Updated",
         description: "Dispatch information has been updated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/dispatch", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/dispatch", userId] });
       setIsEditCarrierOpen(false);
     },
     onError: (error: any) => {
@@ -100,7 +100,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
         title: "Shipment Completed",
         description: "Dispatch has been marked as completed",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/dispatch", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/dispatch", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -120,7 +120,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
         title: "Status Updated",
         description: "Dispatch status has been updated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/dispatch", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/dispatch", userId] });
     },
     onError: (error: any) => {
       toast({

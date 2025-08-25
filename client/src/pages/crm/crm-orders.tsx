@@ -63,7 +63,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: orders = [], isLoading } = useQuery<Order[]>({
-    queryKey: ["/api/crm/orders", userId, agentId],
+    queryKey: ["/api/crm/orders", userId],
   });
 
   const sendContractMutation = useMutation({
@@ -75,7 +75,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
         title: "Contract Sent",
         description: "E-contract has been sent to the customer",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/orders", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/orders", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -95,7 +95,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
         title: "Order Dispatched",
         description: "Order has been moved to dispatch",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/orders", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/orders", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -115,7 +115,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
         title: "Contract Signed",
         description: "Order has been marked as signed",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/orders", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/orders", userId] });
     },
     onError: (error: any) => {
       toast({
