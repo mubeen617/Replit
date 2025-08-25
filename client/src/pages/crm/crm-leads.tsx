@@ -88,7 +88,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const addLeadMutation = useMutation({
     mutationFn: async (leadData: any) => {
-      return await apiRequest("POST", "/api/crm/leads", leadData);
+      return await apiRequest("POST", `/api/crm/leads/${userId}`, leadData);
     },
     onSuccess: () => {
       toast({
