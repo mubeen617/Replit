@@ -13,7 +13,7 @@ import {
   type InsertLead,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, ilike, or, and, count } from "drizzle-orm";
+import { eq, desc, ilike, or, and, count, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 // Interface for storage operations
@@ -296,11 +296,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLead(lead: InsertLead): Promise<Lead> {
+    // Generate unique lead number
+    const leadNumber = await this.generateUniqueLeadNumber();
+    
     const [newLead] = await db
       .insert(leads)
-      .values(lead)
+      .values({ ...lead, leadNumber })
       .returning();
     return newLead;
+  }
+
+  private async generateUniqueLeadNumber(): Promise<string> {
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    
+    // Find the highest sequence number for current year-month
+    const existingLeads = await db
+      .select({ leadNumber: leads.leadNumber })
+      .from(leads)
+      .where(sql`${leads.leadNumber} LIKE ${`L-${year}${month}-%`}`)
+      .orderBy(sql`${leads.leadNumber} DESC`)
+      .limit(1);
+    
+    let sequence = 1;
+    if (existingLeads.length > 0) {
+      const lastNumber = existingLeads[0].leadNumber;
+      const match = lastNumber.match(/L-\d{6}-(\d+)$/);
+      if (match) {
+        sequence = parseInt(match[1]) + 1;
+      }
+    }
+    
+    return `L-${year}${month}-${String(sequence).padStart(4, '0')}`;
   }
 
   async updateLead(id: string, customerId: string, lead: Partial<InsertLead>): Promise<Lead> {

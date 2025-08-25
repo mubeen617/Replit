@@ -166,7 +166,6 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
     const leadData = {
       customerId: userId,
       assignedUserId: agentId || (formData.get("assignedUserId") as string) || null,
-      leadNumber: formData.get("leadNumber") as string,
       contactName: formData.get("contactName") as string,
       contactEmail: formData.get("contactEmail") as string,
       contactPhone: formData.get("contactPhone") as string,
@@ -284,16 +283,6 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
                   <div className="space-y-4">
                     <h3 className="font-medium text-gray-900">Lead Information</h3>
                     <div className="grid gap-3">
-                      <div>
-                        <Label htmlFor="leadNumber">Lead Number *</Label>
-                        <Input
-                          id="leadNumber"
-                          name="leadNumber"
-                          required
-                          data-testid="input-lead-number"
-                          placeholder="L-2025-001"
-                        />
-                      </div>
                       
                       <div>
                         <Label htmlFor="contactName">Contact Name *</Label>

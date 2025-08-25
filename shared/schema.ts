@@ -303,6 +303,7 @@ export const dispatchRelations = relations(dispatch, ({ one }) => ({
 // Schema validations
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
+  leadNumber: true, // Auto-generated
   createdAt: true,
   updatedAt: true,
 }).extend({
