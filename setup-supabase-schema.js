@@ -1,18 +1,21 @@
-# Supabase Migration Instructions
+import { createClient } from '@supabase/supabase-js';
 
-## 🔧 Database Setup Required
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-Since automatic schema creation failed, you need to manually set up the database schema in Supabase:
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY environment variables');
+  process.exit(1);
+}
 
-### Step 1: Access Supabase SQL Editor
-1. Go to your [Supabase dashboard](https://supabase.com/dashboard)
-2. Navigate to your project: `pzcctsqmnfrtvhihtmhv`
-3. Click on **SQL Editor** in the left sidebar
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-### Step 2: Execute Schema SQL
-Copy and paste the following SQL into the SQL Editor and click **Run**:
-
-```sql
+async function setupSchema() {
+  console.log('Setting up Supabase database schema...');
+  
+  try {
+    // Create the database schema using Supabase SQL
+    const schemaSQL = `
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -99,34 +102,7 @@ CREATE TABLE IF NOT EXISTS leads (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Quotes table
-CREATE TABLE IF NOT EXISTS quotes (
-    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id VARCHAR NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    lead_id VARCHAR NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
-    quote_number VARCHAR NOT NULL UNIQUE,
-    contact_name VARCHAR NOT NULL,
-    contact_email VARCHAR NOT NULL,
-    contact_phone VARCHAR NOT NULL,
-    vehicle_year VARCHAR,
-    vehicle_make VARCHAR,
-    vehicle_model VARCHAR,
-    vehicle_type VARCHAR,
-    transport_type VARCHAR DEFAULT 'open' NOT NULL,
-    origin VARCHAR NOT NULL,
-    destination VARCHAR NOT NULL,
-    pickup_date TIMESTAMP NOT NULL,
-    delivery_date TIMESTAMP,
-    total_price VARCHAR NOT NULL DEFAULT '0',
-    carrier_rate VARCHAR,
-    broker_fee VARCHAR,
-    status VARCHAR DEFAULT 'draft' NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Demo customer data
+-- Demo data
 INSERT INTO customers (id, name, domain, admin_name, admin_email, admin_password, status) 
 VALUES (
     'demo-vehicle-broker-123',
@@ -137,35 +113,23 @@ VALUES (
     '$2b$10$rGVVQ3kk0YVwYZKUBzGOLeeq.tLXl8t2K6JkGJ/TGUHdBYr6Fl0AC',
     'active'
 ) ON CONFLICT (id) DO NOTHING;
+    `;
 
--- Demo leads data
-INSERT INTO leads (id, customer_id, lead_number, contact_name, contact_email, contact_phone, vehicle_year, vehicle_make, vehicle_model, vehicle_type, transport_type, origin, destination, pickup_date, status, priority) 
-VALUES 
-    ('demo-lead-001', 'demo-vehicle-broker-123', 'L-202408-0001', 'John Smith', 'john@email.com', '555-0123', '2023', 'Tesla', 'Model 3', 'sedan', 'enclosed', 'Los Angeles, CA', 'New York, NY', '2024-09-01 10:00:00', 'lead', 'high'),
-    ('demo-lead-002', 'demo-vehicle-broker-123', 'L-202408-0002', 'Mary Johnson', 'mary@email.com', '555-0456', '2022', 'Ford', 'F-150', 'truck', 'open', 'Chicago, IL', 'Miami, FL', '2024-09-02 14:00:00', 'lead', 'normal')
-ON CONFLICT (id) DO NOTHING;
-```
+    const { error } = await supabase.rpc('exec', { query: schemaSQL });
+    
+    if (error) {
+      console.error('Schema setup error:', error);
+    } else {
+      console.log('✅ Database schema setup complete!');
+      
+      // Test the tables
+      const { data: customers } = await supabase.from('customers').select('count');
+      console.log('✅ Tables created successfully');
+    }
+    
+  } catch (err) {
+    console.error('Setup error:', err);
+  }
+}
 
-### Step 3: Verify Tables Created
-After running the SQL, check the **Table Editor** tab to confirm these tables exist:
-- `sessions`
-- `users` 
-- `customers`
-- `customer_users`
-- `leads`
-- `quotes`
-
-## ✅ Migration Status
-- ✅ Supabase client connections configured
-- ✅ Environment variables set (using fallback values for development)
-- ✅ Database schema prepared
-- 🔄 **Next: Execute the SQL above to complete the migration**
-- 🔄 Update frontend components to use Supabase directly
-- 🔄 Test vehicle brokerage features with real-time updates
-
-## 📝 Environment Variables
-Add these to Replit Secrets for production:
-- `VITE_SUPABASE_URL=https://pzcctsqmnfrtvhihtmhv.supabase.co`
-- `VITE_SUPABASE_ANON_KEY=your_anon_key`
-
-The system is currently using fallback values for development but will use the VITE_ prefixed environment variables when available.
+setupSchema();

@@ -1,32 +1,29 @@
-// Temporarily disabled until environment variables are set up
-// import { supabase } from './supabase';
+import { supabase } from './supabase';
 
 // Supabase service layer for frontend operations
 export class SupabaseService {
   
-  // Generic query method
+  // Generic query method using proper Supabase query builder pattern
   async query(tableName: string, options: {
     select?: string;
     filter?: { column: string; operator: string; value: any };
     order?: { column: string; ascending?: boolean };
     limit?: number;
   } = {}) {
-    let query = supabase.from(tableName);
+    // Start with select
+    let query = supabase.from(tableName).select(options.select || '*');
     
-    if (options.select) {
-      query = query.select(options.select);
-    } else {
-      query = query.select('*');
-    }
-    
+    // Apply filter if provided
     if (options.filter) {
       query = query.filter(options.filter.column, options.filter.operator, options.filter.value);
     }
     
+    // Apply ordering if provided
     if (options.order) {
       query = query.order(options.order.column, { ascending: options.order.ascending ?? false });
     }
     
+    // Apply limit if provided
     if (options.limit) {
       query = query.limit(options.limit);
     }

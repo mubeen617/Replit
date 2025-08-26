@@ -1,19 +1,20 @@
 # Overview
 
-This is a full-stack web application built for vehicle brokerage CRM administration. It's a modern React-based admin dashboard that allows management of vehicle brokerage companies and their broker agents. The application uses a monolithic architecture with a Node.js/Express backend serving both API endpoints and static frontend assets.
+This is a full-stack web application built for vehicle brokerage CRM administration. It's a modern React-based admin dashboard that allows management of vehicle brokerage companies and their broker agents. The application uses a modern architecture with React frontend connecting directly to Supabase for backend services and database operations.
 
 The system provides authentication via Replit Auth for the Server Panel, plus a separate CRM portal with email/password authentication for vehicle brokers. It's designed for vehicle brokers who receive vehicle shipping leads and distribute them to their broker agents to find carriers and arrange vehicle shipments. The system handles multi-tenant scenarios where each vehicle brokerage company has its own set of broker agents with different roles and permissions.
 
-**Recent Update (August 21, 2025)**: Successfully converted from freight brokerage to vehicle brokerage system with external API lead fetching. The system now includes:
-- CRM login page with separate authentication for broker managers and broker agents
-- Broker manager dashboard for lead distribution and team management  
-- Broker agent dashboard for working vehicle shipping leads and finding carriers
-- Role-based interfaces reflecting vehicle brokerage workflow (leads, carriers, commissions)
-- External API integration for automatically importing vehicle shipping leads with customer isolation
-- Database schema updated to use vehicle_type and transport_type instead of commodity/equipment
-- Complete terminology conversion from freight to vehicle brokerage throughout the system
-- Demo accounts available for testing the vehicle brokerage workflow
-- All passwords are hashed using bcrypt before storage for security
+**Recent Update (August 26, 2025)**: Successfully migrated from Express.js + PostgreSQL to Supabase backend and database. Major architectural changes include:
+- **Backend Migration**: Replaced Express.js API layer with direct Supabase client connections
+- **Database Migration**: Migrated from Neon PostgreSQL to Supabase PostgreSQL with real-time capabilities
+- **Enhanced Performance**: Direct database connections eliminate API layer overhead
+- **Real-time Features**: Built-in support for live updates on lead assignments and status changes
+- **Scalability**: Leverages Supabase's edge network for better global performance
+- **Security**: Row Level Security (RLS) policies for multi-tenant data isolation
+- Complete vehicle brokerage CRM functionality maintained: leads, quotes, customer management
+- Auto-generated lead numbers with format L-YYYYMM-NNNN and monthly sequence reset
+- Zipcode auto-fill functionality for pickup/dropoff locations using zippopotam.us API
+- Lead-to-quote conversion workflow with proper status management and cache invalidation
 
 # User Preferences
 
@@ -30,11 +31,12 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Radix UI primitives wrapped in custom components for accessibility and consistency
 
 ## Backend Architecture
-- **Runtime**: Node.js with Express.js framework
-- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
-- **Authentication**: Replit Auth integration with OpenID Connect for user authentication
-- **Session Management**: Express sessions stored in PostgreSQL using connect-pg-simple
-- **API Design**: RESTful API endpoints with consistent error handling and logging middleware
+- **Runtime**: Node.js with Express.js framework for session management and Replit Auth
+- **Database**: Supabase PostgreSQL with real-time capabilities and Row Level Security (RLS)
+- **Data Access**: Direct Supabase client connections for frontend, service role for backend operations
+- **Authentication**: Replit Auth integration with OpenID Connect for admin panel, plus custom email/password for CRM users
+- **Session Management**: Express sessions for Replit Auth, Supabase auth for CRM users
+- **Real-time Features**: Built-in Supabase subscriptions for live lead updates and notifications
 
 ## Database Design
 The schema includes four main entities:
@@ -54,8 +56,8 @@ The database uses PostgreSQL-specific features like UUID generation and JSONB fo
 # External Dependencies
 
 ## Database Services
-- **Neon Database**: PostgreSQL hosting service for production database management
-- **Drizzle Kit**: Database migration and schema management tooling
+- **Supabase**: PostgreSQL hosting with real-time capabilities, authentication, and edge network
+- **Supabase Client Libraries**: TypeScript SDK for frontend and backend database operations
 
 ## Authentication Services
 - **Replit Auth**: Complete authentication solution with OpenID Connect integration
