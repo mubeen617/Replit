@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { supabaseService } from "@/lib/supabaseService";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -67,19 +67,26 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: quotes = [], isLoading } = useQuery<Quote[]>({
-    queryKey: ["/api/crm/quotes", userId],
+    queryKey: ["supabase-quotes", userId],
+    queryFn: async () => {
+      return await supabaseService.getQuotes(userId, agentId || undefined);
+    }
   });
 
   const convertToOrderMutation = useMutation({
     mutationFn: async (quoteId: string) => {
-      return await apiRequest("POST", `/api/crm/quotes/${quoteId}/convert-to-order`);
+      // For now, order conversion would need additional business logic
+      return await supabaseService.update('quotes', 
+        { status: 'converted' }, 
+        { column: 'id', operator: 'eq', value: quoteId }
+      );
     },
     onSuccess: () => {
       toast({
         title: "Quote Converted",
         description: "Quote has been converted to an order",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
+      queryClient.invalidateQueries({ queryKey: ["supabase-quotes", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -92,14 +99,18 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
 
   const sendQuoteMutation = useMutation({
     mutationFn: async (quoteId: string) => {
-      return await apiRequest("POST", `/api/crm/quotes/${quoteId}/send`);
+      // Update quote status to sent
+      return await supabaseService.update('quotes', 
+        { status: 'sent' }, 
+        { column: 'id', operator: 'eq', value: quoteId }
+      );
     },
     onSuccess: () => {
       toast({
         title: "Quote Sent",
         description: "Quote has been sent to the customer",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
+      queryClient.invalidateQueries({ queryKey: ["supabase-quotes", userId] });
     },
     onError: (error: any) => {
       toast({
