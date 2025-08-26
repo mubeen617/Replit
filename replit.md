@@ -4,17 +4,17 @@ This is a full-stack web application built for vehicle brokerage CRM administrat
 
 The system provides authentication via Replit Auth for the Server Panel, plus a separate CRM portal with email/password authentication for vehicle brokers. It's designed for vehicle brokers who receive vehicle shipping leads and distribute them to their broker agents to find carriers and arrange vehicle shipments. The system handles multi-tenant scenarios where each vehicle brokerage company has its own set of broker agents with different roles and permissions.
 
-**Recent Update (August 26, 2025)**: Successfully completed full migration from Supabase to PostgreSQL with Express.js API architecture. Major changes include:
-- **Database Migration**: Fully migrated from Supabase to Neon PostgreSQL with proper SSL configuration
-- **Frontend Migration**: Updated all CRM components to use Express.js API endpoints instead of direct Supabase connections
-- **Unified Architecture**: Both admin panel and CRM portal now use consistent PostgreSQL backend through Express.js API
+**Recent Update (August 26, 2025)**: Successfully completed migration to Supabase database with Express.js API architecture. Major changes include:
+- **Database Migration**: Fully migrated to Supabase from PostgreSQL with proper authentication and configuration
+- **Schema Alignment**: Updated all database schemas to use snake_case naming to match Supabase conventions
+- **Backend Migration**: All Express.js routes now use Supabase client for database operations instead of storage interface
 - **Authentication**: Maintained dual authentication system (Replit Auth for admin, email/password for CRM users)
-- **Data Integrity**: All customer, lead, and quote data now properly stored in PostgreSQL database
-- **API Consistency**: All CRUD operations now go through standardized REST API endpoints
+- **Data Integrity**: All customer, lead, and quote operations now use Supabase for data storage
+- **API Consistency**: All CRUD operations now go through Supabase via Express.js API endpoints
 - Complete vehicle brokerage CRM functionality maintained: leads, quotes, customer management
 - Auto-generated lead numbers with format L-YYYYMM-NNNN and monthly sequence reset
 - Zipcode auto-fill functionality for pickup/dropoff locations using zippopotam.us API
-- Lead-to-quote conversion workflow with proper status management and cache invalidation
+- Lead-to-quote conversion workflow with proper status management
 
 # User Preferences
 
@@ -32,8 +32,8 @@ Preferred communication style: Simple, everyday language.
 
 ## Backend Architecture
 - **Runtime**: Node.js with Express.js framework providing full API layer and session management
-- **Database**: PostgreSQL (Neon) with SSL configuration for secure connections
-- **Data Access**: Express.js API endpoints for all database operations via Drizzle ORM
+- **Database**: Supabase PostgreSQL with secure authentication and real-time capabilities
+- **Data Access**: Express.js API endpoints connecting to Supabase for all database operations
 - **Authentication**: Replit Auth integration with OpenID Connect for admin panel, plus custom email/password authentication for CRM users
 - **Session Management**: Express sessions with PostgreSQL storage for Replit Auth, server-side authentication for CRM users
 - **API Layer**: RESTful endpoints for all CRUD operations, lead management, and quote conversion workflows
@@ -60,8 +60,8 @@ The database uses PostgreSQL-specific features like UUID generation, JSONB for s
 # External Dependencies
 
 ## Database Services
-- **Neon PostgreSQL**: Managed PostgreSQL hosting with SSL security and connection pooling
-- **Drizzle ORM**: TypeScript-first ORM providing type-safe database operations and migrations
+- **Supabase**: Managed PostgreSQL hosting with authentication, real-time features, and REST API
+- **Drizzle ORM**: TypeScript-first ORM providing type-safe database schema definitions
 
 ## Authentication Services
 - **Replit Auth**: Complete authentication solution with OpenID Connect integration

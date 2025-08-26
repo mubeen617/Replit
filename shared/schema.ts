@@ -30,11 +30,11 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  first_name: varchar("first_name"),
+  last_name: varchar("last_name"),
+  profile_image_url: varchar("profile_image_url"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 
 // Customer organizations table
@@ -42,26 +42,26 @@ export const customers = pgTable("customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   domain: varchar("domain").notNull().unique(),
-  adminName: varchar("admin_name").notNull(),
-  adminEmail: varchar("admin_email").notNull(),
-  adminPassword: varchar("admin_password").notNull(), // Hashed password for CRM portal login
+  admin_name: varchar("admin_name").notNull(),
+  admin_email: varchar("admin_email").notNull(),
+  admin_password: varchar("admin_password").notNull(), // Hashed password for CRM portal login
   status: varchar("status").notNull().default("active"), // active, inactive, suspended, pending
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 
 // Customer users table (hierarchical under customers)
 export const customerUsers = pgTable("customer_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  customerId: varchar("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+  customer_id: varchar("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
   email: varchar("email").notNull(),
-  firstName: varchar("first_name").notNull(),
-  lastName: varchar("last_name").notNull(),
+  first_name: varchar("first_name").notNull(),
+  last_name: varchar("last_name").notNull(),
   password: varchar("password").notNull(), // Hashed password for CRM portal login
   role: varchar("role").notNull().default("user"), // admin, user, viewer
   status: varchar("status").notNull().default("active"), // active, inactive, pending
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 
 // Relations
@@ -72,7 +72,7 @@ export const customersRelations = relations(customers, ({ many }) => ({
 
 export const customerUsersRelations = relations(customerUsers, ({ one, many }) => ({
   customer: one(customers, {
-    fields: [customerUsers.customerId],
+    fields: [customerUsers.customer_id],
     references: [customers.id],
   }),
   assignedLeads: many(leads),
@@ -82,18 +82,18 @@ export const customerUsersRelations = relations(customerUsers, ({ one, many }) =
 export const insertCustomerSchema = createInsertSchema(customers).pick({
   name: true,
   domain: true,
-  adminName: true,
-  adminEmail: true,
+  admin_name: true,
+  admin_email: true,
   status: true,
 }).extend({
-  adminPassword: z.string().min(8, "Password must be at least 8 characters"),
+  admin_password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export const insertCustomerUserSchema = createInsertSchema(customerUsers).pick({
-  customerId: true,
+  customer_id: true,
   email: true,
-  firstName: true,
-  lastName: true,
+  first_name: true,
+  last_name: true,
   role: true,
   status: true,
 }).extend({
@@ -106,78 +106,78 @@ export type User = typeof users.$inferSelect;
 // Enhanced Leads table for vehicle shipping opportunities
 export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  customerId: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
-  assignedUserId: varchar("assigned_user_id").references(() => customerUsers.id, { onDelete: "set null" }),
-  leadNumber: varchar("lead_number").notNull().unique(),
+  customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
+  assigned_user_id: varchar("assigned_user_id").references(() => customerUsers.id, { onDelete: "set null" }),
+  lead_number: varchar("lead_number").notNull().unique(),
   
   // Contact Details
-  contactName: varchar("contact_name").notNull(),
-  contactEmail: varchar("contact_email").notNull(),
-  contactPhone: varchar("contact_phone").notNull(),
+  contact_name: varchar("contact_name").notNull(),
+  contact_email: varchar("contact_email").notNull(),
+  contact_phone: varchar("contact_phone").notNull(),
   
   // Financial Details
-  carrierFees: varchar("carrier_fees").default("0").notNull(),
-  brokerFees: varchar("broker_fees").default("0").notNull(),
-  totalTariff: varchar("total_tariff").default("0").notNull(), // Sum of carrier and broker fees
+  carrier_fees: varchar("carrier_fees").default("0").notNull(),
+  broker_fees: varchar("broker_fees").default("0").notNull(),
+  total_tariff: varchar("total_tariff").default("0").notNull(), // Sum of carrier and broker fees
   
   // Vehicle Details
-  vehicleYear: varchar("vehicle_year"),
-  vehicleMake: varchar("vehicle_make"),
-  vehicleModel: varchar("vehicle_model"),
-  vehicleType: varchar("vehicle_type"), // Car, truck, motorcycle, etc.
-  trailerType: varchar("trailer_type").default("open").notNull(), // open, closed
+  vehicle_year: varchar("vehicle_year"),
+  vehicle_make: varchar("vehicle_make"),
+  vehicle_model: varchar("vehicle_model"),
+  vehicle_type: varchar("vehicle_type"), // Car, truck, motorcycle, etc.
+  trailer_type: varchar("trailer_type").default("open").notNull(), // open, closed
   
   // Location and Timing
   origin: varchar("origin").notNull(),
-  originZipcode: varchar("origin_zipcode"),
+  origin_zipcode: varchar("origin_zipcode"),
   destination: varchar("destination").notNull(),
-  destinationZipcode: varchar("destination_zipcode"),
-  pickupDate: timestamp("pickup_date").notNull(),
-  deliveryDate: timestamp("delivery_date"),
+  destination_zipcode: varchar("destination_zipcode"),
+  pickup_date: timestamp("pickup_date").notNull(),
+  delivery_date: timestamp("delivery_date"),
   
   // Legacy fields (keeping for backward compatibility)
-  customerRate: varchar("customer_rate"),
-  carrierRate: varchar("carrier_rate"),
+  customer_rate: varchar("customer_rate"),
+  carrier_rate: varchar("carrier_rate"),
   weight: varchar("weight"),
-  transportType: varchar("transport_type"), // Open, enclosed transport
+  transport_type: varchar("transport_type"), // Open, enclosed transport
   
   // Workflow Status
   status: varchar("status").default("lead").notNull(), // lead, quote, order, dispatch, completed, cancelled
   priority: varchar("priority").default("normal").notNull(), // low, normal, high, urgent
   notes: text("notes"),
   source: varchar("source"), // API source where lead came from or 'manual'
-  externalId: varchar("external_id"), // ID from external system
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  external_id: varchar("external_id"), // ID from external system
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 
 // Quotes table - leads converted to quotes
 export const quotes = pgTable("quotes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  leadId: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
-  customerId: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
-  createdByUserId: varchar("created_by_user_id").references(() => customerUsers.id, { onDelete: "set null" }).notNull(),
+  lead_id: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
+  customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
+  created_by_user_id: varchar("created_by_user_id").references(() => customerUsers.id, { onDelete: "set null" }).notNull(),
   
   // Tariff Details
-  carrierFees: varchar("carrier_fees").notNull(),
-  brokerFees: varchar("broker_fees").notNull(),
-  totalTariff: varchar("total_tariff").notNull(),
+  carrier_fees: varchar("carrier_fees").notNull(),
+  broker_fees: varchar("broker_fees").notNull(),
+  total_tariff: varchar("total_tariff").notNull(),
   
   // Pickup Details
-  pickupPersonName: varchar("pickup_person_name").notNull(),
-  pickupPersonPhone: varchar("pickup_person_phone").notNull(),
-  pickupAddress: text("pickup_address").notNull(),
+  pickup_person_name: varchar("pickup_person_name").notNull(),
+  pickup_person_phone: varchar("pickup_person_phone").notNull(),
+  pickup_address: text("pickup_address").notNull(),
   
   // Drop-off Details
-  dropoffPersonName: varchar("dropoff_person_name").notNull(),
-  dropoffPersonPhone: varchar("dropoff_person_phone").notNull(),
-  dropoffAddress: text("dropoff_address").notNull(),
+  dropoff_person_name: varchar("dropoff_person_name").notNull(),
+  dropoff_person_phone: varchar("dropoff_person_phone").notNull(),
+  dropoff_address: text("dropoff_address").notNull(),
   
   // Payment Details (optional)
-  cardDetails: text("card_details"), // Encrypted card details
+  card_details: text("card_details"), // Encrypted card details
   
   // Terms and Conditions
-  specialTerms: text("special_terms"),
+  special_terms: text("special_terms"),
   standardTerms: text("standard_terms"),
   
   status: varchar("status").default("draft").notNull(), // draft, sent, accepted, rejected, expired
@@ -247,11 +247,11 @@ export const dispatch = pgTable("dispatch", {
 
 export const leadsRelations = relations(leads, ({ one, many }) => ({
   customer: one(customers, {
-    fields: [leads.customerId],
+    fields: [leads.customer_id],
     references: [customers.id],
   }),
   assignedUser: one(customerUsers, {
-    fields: [leads.assignedUserId],
+    fields: [leads.assigned_user_id],
     references: [customerUsers.id],
   }),
   quotes: many(quotes),
@@ -259,15 +259,15 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
 
 export const quotesRelations = relations(quotes, ({ one }) => ({
   lead: one(leads, {
-    fields: [quotes.leadId],
+    fields: [quotes.lead_id],
     references: [leads.id],
   }),
   customer: one(customers, {
-    fields: [quotes.customerId],
+    fields: [quotes.customer_id],
     references: [customers.id],
   }),
   createdBy: one(customerUsers, {
-    fields: [quotes.createdByUserId],
+    fields: [quotes.created_by_user_id],
     references: [customerUsers.id],
   }),
 }));
