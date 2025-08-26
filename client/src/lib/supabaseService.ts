@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+// Temporarily disabled until environment variables are set up
+// import { supabase } from './supabase';
 
 // Supabase service layer for frontend operations
 export class SupabaseService {
