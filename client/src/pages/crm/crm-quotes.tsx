@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabaseService } from "@/lib/supabaseService";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -67,26 +66,37 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: quotes = [], isLoading } = useQuery<Quote[]>({
-    queryKey: ["supabase-quotes", userId],
+    queryKey: ["/api/crm/quotes", userId],
     queryFn: async () => {
-      return await supabaseService.getQuotes(userId, agentId || undefined);
+      const response = await fetch(`/api/crm/quotes/${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch quotes');
+      }
+      return response.json();
     }
   });
 
   const convertToOrderMutation = useMutation({
     mutationFn: async (quoteId: string) => {
-      // For now, order conversion would need additional business logic
-      return await supabaseService.update('quotes', 
-        { status: 'converted' }, 
-        { column: 'id', operator: 'eq', value: quoteId }
-      );
+      const response = await fetch(`/api/crm/quotes/${quoteId}/convert-to-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to convert quote to order');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Quote Converted",
         description: "Quote has been converted to an order",
       });
-      queryClient.invalidateQueries({ queryKey: ["supabase-quotes", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -99,18 +109,25 @@ export default function CRMQuotes({ user, userType }: CRMQuotesProps) {
 
   const sendQuoteMutation = useMutation({
     mutationFn: async (quoteId: string) => {
-      // Update quote status to sent
-      return await supabaseService.update('quotes', 
-        { status: 'sent' }, 
-        { column: 'id', operator: 'eq', value: quoteId }
-      );
+      const response = await fetch(`/api/crm/quotes/${quoteId}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to send quote');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Quote Sent",
         description: "Quote has been sent to the customer",
       });
-      queryClient.invalidateQueries({ queryKey: ["supabase-quotes", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
     },
     onError: (error: any) => {
       toast({

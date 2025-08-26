@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabaseService } from "@/lib/supabaseService";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -78,18 +77,27 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
-    queryKey: ["supabase-leads", userId],
+    queryKey: ["/api/crm/leads", userId, agentId],
     queryFn: async () => {
-      return await supabaseService.getLeads(userId, agentId || undefined);
+      const url = agentId 
+        ? `/api/crm/user-loads/${agentId}`
+        : `/api/crm/leads/${userId}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch leads');
+      }
+      return response.json();
     }
   });
 
   const { data: teamMembers = [] } = useQuery<CustomerUser[]>({
-    queryKey: ["supabase-team-members", userId],
+    queryKey: ["/api/crm/users", userId],
     queryFn: async () => {
-      return await supabaseService.query('customer_users', {
-        filter: { column: 'customer_id', operator: 'eq', value: userId }
-      }) as CustomerUser[];
+      const response = await fetch(`/api/crm/users/${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+      return response.json();
     },
     enabled: userType === "customer",
   });
@@ -119,22 +127,26 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const addLeadMutation = useMutation({
     mutationFn: async (leadData: any) => {
-      // Generate lead number
-      const leadNumber = await supabaseService.generateLeadNumber();
-      const fullLeadData = {
-        ...leadData,
-        customer_id: userId,
-        lead_number: leadNumber,
-        status: 'lead'
-      };
-      return await supabaseService.createLead(fullLeadData);
+      const response = await fetch(`/api/crm/leads/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(leadData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create lead');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Lead Added",
         description: "New lead has been created successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["supabase-leads", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId, agentId] });
       setIsAddLeadOpen(false);
     },
     onError: (error: any) => {
@@ -148,40 +160,26 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const convertToQuoteMutation = useMutation({
     mutationFn: async (leadId: string) => {
-      const lead = leads.find(l => l.id === leadId);
-      if (!lead) throw new Error('Lead not found');
+      const response = await fetch(`/api/crm/leads/${leadId}/convert-to-quote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
-      // Generate quote number
-      const quoteNumber = await supabaseService.generateQuoteNumber();
+      if (!response.ok) {
+        throw new Error('Failed to convert lead to quote');
+      }
       
-      const quoteData = {
-        customer_id: userId,
-        quote_number: quoteNumber,
-        contact_name: lead.contactName,
-        contact_email: lead.contactEmail,
-        contact_phone: lead.contactPhone,
-        vehicle_year: lead.vehicleYear,
-        vehicle_make: lead.vehicleMake,
-        vehicle_model: lead.vehicleModel,
-        vehicle_type: lead.vehicleType,
-        transport_type: lead.transportType,
-        origin: lead.origin,
-        destination: lead.destination,
-        pickup_date: lead.pickupDate,
-        delivery_date: lead.deliveryDate,
-        total_price: lead.totalTariff || '0',
-        status: 'draft'
-      };
-      
-      return await supabaseService.convertLeadToQuote(leadId, quoteData);
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Lead Converted",
         description: "Lead has been converted to a quote and moved to Quotes page",
       });
-      queryClient.invalidateQueries({ queryKey: ["supabase-leads", userId] });
-      queryClient.invalidateQueries({ queryKey: ["supabase-quotes", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId, agentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
     },
     onError: (error: any) => {
       toast({
@@ -194,16 +192,29 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const fetchLeadsMutation = useMutation({
     mutationFn: async ({ endpoint, key }: { endpoint: string; key?: string }) => {
-      // For now, this functionality would need external API integration
-      // We'll implement this as a placeholder that could fetch from external APIs
-      throw new Error("External API integration not yet implemented with Supabase");
+      const response = await fetch(`/api/crm/leads/${userId}/fetch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiEndpoint: endpoint,
+          apiKey: key,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch leads from external API');
+      }
+      
+      return response.json();
     },
     onSuccess: (data: any) => {
       toast({
         title: "Leads Fetched Successfully",
         description: data.message,
       });
-      queryClient.invalidateQueries({ queryKey: ["supabase-leads", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId, agentId] });
       setIsApiDialogOpen(false);
       setApiEndpoint("");
       setApiKey("");

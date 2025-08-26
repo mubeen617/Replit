@@ -4,13 +4,13 @@ This is a full-stack web application built for vehicle brokerage CRM administrat
 
 The system provides authentication via Replit Auth for the Server Panel, plus a separate CRM portal with email/password authentication for vehicle brokers. It's designed for vehicle brokers who receive vehicle shipping leads and distribute them to their broker agents to find carriers and arrange vehicle shipments. The system handles multi-tenant scenarios where each vehicle brokerage company has its own set of broker agents with different roles and permissions.
 
-**Recent Update (August 26, 2025)**: Successfully migrated from Express.js + PostgreSQL to Supabase backend and database. Major architectural changes include:
-- **Backend Migration**: Replaced Express.js API layer with direct Supabase client connections
-- **Database Migration**: Migrated from Neon PostgreSQL to Supabase PostgreSQL with real-time capabilities
-- **Enhanced Performance**: Direct database connections eliminate API layer overhead
-- **Real-time Features**: Built-in support for live updates on lead assignments and status changes
-- **Scalability**: Leverages Supabase's edge network for better global performance
-- **Security**: Row Level Security (RLS) policies for multi-tenant data isolation
+**Recent Update (August 26, 2025)**: Successfully completed full migration from Supabase to PostgreSQL with Express.js API architecture. Major changes include:
+- **Database Migration**: Fully migrated from Supabase to Neon PostgreSQL with proper SSL configuration
+- **Frontend Migration**: Updated all CRM components to use Express.js API endpoints instead of direct Supabase connections
+- **Unified Architecture**: Both admin panel and CRM portal now use consistent PostgreSQL backend through Express.js API
+- **Authentication**: Maintained dual authentication system (Replit Auth for admin, email/password for CRM users)
+- **Data Integrity**: All customer, lead, and quote data now properly stored in PostgreSQL database
+- **API Consistency**: All CRUD operations now go through standardized REST API endpoints
 - Complete vehicle brokerage CRM functionality maintained: leads, quotes, customer management
 - Auto-generated lead numbers with format L-YYYYMM-NNNN and monthly sequence reset
 - Zipcode auto-fill functionality for pickup/dropoff locations using zippopotam.us API
@@ -31,21 +31,25 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Radix UI primitives wrapped in custom components for accessibility and consistency
 
 ## Backend Architecture
-- **Runtime**: Node.js with Express.js framework for session management and Replit Auth
-- **Database**: Supabase PostgreSQL with real-time capabilities and Row Level Security (RLS)
-- **Data Access**: Direct Supabase client connections for frontend, service role for backend operations
-- **Authentication**: Replit Auth integration with OpenID Connect for admin panel, plus custom email/password for CRM users
-- **Session Management**: Express sessions for Replit Auth, Supabase auth for CRM users
-- **Real-time Features**: Built-in Supabase subscriptions for live lead updates and notifications
+- **Runtime**: Node.js with Express.js framework providing full API layer and session management
+- **Database**: PostgreSQL (Neon) with SSL configuration for secure connections
+- **Data Access**: Express.js API endpoints for all database operations via Drizzle ORM
+- **Authentication**: Replit Auth integration with OpenID Connect for admin panel, plus custom email/password authentication for CRM users
+- **Session Management**: Express sessions with PostgreSQL storage for Replit Auth, server-side authentication for CRM users
+- **API Layer**: RESTful endpoints for all CRUD operations, lead management, and quote conversion workflows
 
 ## Database Design
-The schema includes four main entities:
-- **Sessions**: Required table for Replit Auth session storage
+The schema includes eight main entities:
+- **Sessions**: Required table for Replit Auth session storage (JSONB)
 - **Users**: Core user table (mandatory for Replit Auth) storing authenticated user profiles
-- **Customers**: Organizations/companies that use the trucking services
+- **Customers**: Organizations/companies that use the vehicle shipping services
 - **CustomerUsers**: Individual users belonging to customer organizations with role-based access
+- **Leads**: Vehicle shipping opportunities with auto-generated lead numbers and comprehensive tracking
+- **Quotes**: Generated quotes with pricing and terms from converted leads
+- **Orders**: Finalized orders with contract management and signature tracking
+- **Dispatch**: Active shipment dispatch records with carrier and driver information
 
-The database uses PostgreSQL-specific features like UUID generation and JSONB for session data. Foreign key relationships maintain data integrity between customers and their users. The leads table now uses vehicle_type (sedan, SUV, truck) and transport_type (open, enclosed) fields to support vehicle shipping operations.
+The database uses PostgreSQL-specific features like UUID generation, JSONB for session data, and proper foreign key relationships. Lead numbers follow L-YYYYMM-NNNN format with monthly sequence resets. All tables support vehicle shipping operations with fields like vehicle_type, transport_type, carrier fees, and broker fees.
 
 ## Authentication & Authorization
 - **Provider**: Replit Auth using OpenID Connect protocol for secure authentication
@@ -56,8 +60,8 @@ The database uses PostgreSQL-specific features like UUID generation and JSONB fo
 # External Dependencies
 
 ## Database Services
-- **Supabase**: PostgreSQL hosting with real-time capabilities, authentication, and edge network
-- **Supabase Client Libraries**: TypeScript SDK for frontend and backend database operations
+- **Neon PostgreSQL**: Managed PostgreSQL hosting with SSL security and connection pooling
+- **Drizzle ORM**: TypeScript-first ORM providing type-safe database operations and migrations
 
 ## Authentication Services
 - **Replit Auth**: Complete authentication solution with OpenID Connect integration
