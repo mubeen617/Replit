@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { supabaseAdmin } from "./supabase";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertCustomerSchema, insertCustomerUserSchema, insertLeadSchema, insertQuoteSchema } from "@shared/schema";
 import { z } from "zod";
@@ -13,7 +13,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      // Fetch or create user in Supabase
+      let { data: user, error } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        // User doesn't exist, create one
+        const newUser = {
+          id: userId,
+          email: req.user.claims.email,
+          first_name: req.user.claims.given_name || '',
+          last_name: req.user.claims.family_name || '',
+          profile_image_url: req.user.claims.picture || ''
+        };
+        
+        const { data: createdUser, error: createError } = await supabaseAdmin
+          .from('users')
+          .insert(newUser)
+          .select()
+          .single();
+          
+        if (createError) throw createError;
+        user = createdUser;
+      } else if (error) {
+        throw error;
+      }
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -24,7 +51,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stats endpoint
   app.get('/api/stats', isAuthenticated, async (req, res) => {
     try {
-      const stats = await storage.getStats();
+      // Get stats from Supabase
+      const { data: customers, error: customersError } = await supabaseAdmin
+        .from('customers')
+        .select('id', { count: 'exact' });
+      
+      const { data: users, error: usersError } = await supabaseAdmin
+        .from('customer_users')
+        .select('id', { count: 'exact' });
+        
+      if (customersError || usersError) {
+        throw new Error('Failed to fetch stats');
+      }
+      
+      const stats = {
+        totalCustomers: customers?.length || 0,
+        activeUsers: users?.length || 0,
+        pendingUsers: 0
+      };
       res.json(stats);
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -40,7 +84,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
 
-      const result = await storage.getCustomers(search, offset, limit);
+      // Get customers from Supabase
+      let query = supabaseAdmin.from('customers').select('*', { count: 'exact' });
+      
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,domain.ilike.%${search}%,admin_email.ilike.%${search}%`);
+      }
+      
+      const { data: customers, error, count } = await query
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+        
+      if (error) throw error;
+      
+      const result = { customers: customers || [], total: count || 0 };
       res.json(result);
     } catch (error) {
       console.error("Error fetching customers:", error);
@@ -50,7 +107,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/customers/:id', isAuthenticated, async (req, res) => {
     try {
-      const customer = await storage.getCustomerById(req.params.id);
+      // Get customer from Supabase
+      const { data: customer, error } = await supabaseAdmin
+        .from('customers')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
+        
+      if (error && error.code === 'PGRST116') {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      if (error) throw error;
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -64,7 +131,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/customers', isAuthenticated, async (req, res) => {
     try {
       const customerData = insertCustomerSchema.parse(req.body);
-      const customer = await storage.createCustomer(customerData);
+      // Create customer in Supabase
+      const { data: customer, error } = await supabaseAdmin
+        .from('customers')
+        .insert(customerData)
+        .select()
+        .single();
+        
+      if (error) throw error;
       res.status(201).json(customer);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -78,7 +152,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/customers/:id', isAuthenticated, async (req, res) => {
     try {
       const customerData = insertCustomerSchema.partial().parse(req.body);
-      const customer = await storage.updateCustomer(req.params.id, customerData);
+      // Update customer in Supabase
+      const { data: customer, error } = await supabaseAdmin
+        .from('customers')
+        .update(customerData)
+        .eq('id', req.params.id)
+        .select()
+        .single();
+        
+      if (error) throw error;
       res.json(customer);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -91,7 +173,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/customers/:id', isAuthenticated, async (req, res) => {
     try {
-      await storage.deleteCustomer(req.params.id);
+      // Delete customer from Supabase
+      const { error } = await supabaseAdmin
+        .from('customers')
+        .delete()
+        .eq('id', req.params.id);
+        
+      if (error) throw error;
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting customer:", error);
@@ -103,7 +191,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/customers/:customerId/users', isAuthenticated, async (req, res) => {
     try {
       const search = req.query.search as string;
-      const users = await storage.getCustomerUsers(req.params.customerId, search);
+      // Get customer users from Supabase
+      let query = supabaseAdmin
+        .from('customer_users')
+        .select('*')
+        .eq('customer_id', req.params.customerId);
+        
+      if (search) {
+        query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+      }
+      
+      const { data: users, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
       res.json(users);
     } catch (error) {
       console.error("Error fetching customer users:", error);
@@ -117,7 +216,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         customerId: req.params.customerId
       });
-      const user = await storage.createCustomerUser(userData);
+      // Create customer user in Supabase
+      const { data: user, error } = await supabaseAdmin
+        .from('customer_users')
+        .insert(userData)
+        .select()
+        .single();
+        
+      if (error) throw error;
       res.status(201).json(user);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -131,7 +237,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/customers/:customerId/users/:id', isAuthenticated, async (req, res) => {
     try {
       const userData = insertCustomerUserSchema.partial().parse(req.body);
-      const user = await storage.updateCustomerUser(req.params.id, userData);
+      // Update customer user in Supabase
+      const { data: user, error } = await supabaseAdmin
+        .from('customer_users')
+        .update(userData)
+        .eq('id', req.params.id)
+        .select()
+        .single();
+        
+      if (error) throw error;
       res.json(user);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -144,7 +258,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/customers/:customerId/users/:id', isAuthenticated, async (req, res) => {
     try {
-      await storage.deleteCustomerUser(req.params.id);
+      // Delete customer user from Supabase
+      const { error } = await supabaseAdmin
+        .from('customer_users')
+        .delete()
+        .eq('id', req.params.id);
+        
+      if (error) throw error;
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting customer user:", error);
@@ -161,7 +281,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      const customer = await storage.verifyCustomerPassword(email, password);
+      // Verify customer login with Supabase
+      const { data: customer, error } = await supabaseAdmin
+        .from('customers')
+        .select('*')
+        .eq('admin_email', email)
+        .single();
+        
+      if (error || !customer) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Check password
+      const bcrypt = require('bcryptjs');
+      const isValidPassword = await bcrypt.compare(password, customer.admin_password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
       if (!customer) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
@@ -181,7 +317,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      const user = await storage.verifyUserPassword(email, password);
+      // Verify user login with Supabase
+      const { data: user, error } = await supabaseAdmin
+        .from('customer_users')
+        .select('*, customers!inner(*)')
+        .eq('email', email)
+        .single();
+        
+      if (error || !user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Check password
+      const bcrypt = require('bcryptjs');
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
       if (!user) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
@@ -197,7 +349,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/crm/users/:customerId', async (req, res) => {
     try {
       const { customerId } = req.params;
-      const users = await storage.getCustomerUsers(customerId);
+      // Get customer users from Supabase
+      const { data: users, error } = await supabaseAdmin
+        .from('customer_users')
+        .select('*')
+        .eq('customer_id', customerId);
+        
+      if (error) throw error;
       res.json(users);
     } catch (error) {
       console.error("Error fetching CRM users:", error);
@@ -209,7 +367,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { customerId } = req.params;
       const { assignedUserId } = req.query;
-      const leads = await storage.getLeads(customerId, assignedUserId as string);
+      // Get leads from Supabase
+      let query = supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('customer_id', customerId);
+        
+      if (assignedUserId) {
+        query = query.eq('assigned_user_id', assignedUserId);
+      }
+      
+      const { data: leads, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
       res.json(leads);
     } catch (error) {
       console.error("Error fetching leads:", error);
@@ -221,12 +390,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId } = req.params;
       // Get the user to find their customer
-      const user = await storage.getCustomerUserById(userId);
+      const { data: user, error: userError } = await supabaseAdmin
+        .from('customer_users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (userError) throw userError;
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      const leads = await storage.getLeads(user.customerId, userId);
+      // Get leads for this user
+      const { data: leads, error: leadsError } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('customer_id', user.customer_id)
+        .eq('assigned_user_id', userId)
+        .order('created_at', { ascending: false });
+        
+      if (leadsError) throw leadsError;
       res.json(leads);
     } catch (error) {
       console.error("Error fetching user loads:", error);
@@ -243,7 +426,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "API endpoint is required" });
       }
 
-      const fetchedLeads = await storage.fetchLeadsFromAPI(customerId, apiEndpoint, apiKey);
+      // Placeholder for API integration - implement external API lead fetching
+      const fetchedLeads: any[] = [];
+      // TODO: Implement external API integration
       res.json({ 
         success: true, 
         message: `Successfully fetched ${fetchedLeads.length} new leads`,
@@ -266,7 +451,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId
       });
       
-      const lead = await storage.createLead(leadData);
+      // Generate lead number
+      const now = new Date();
+      const yearMonth = now.toISOString().slice(0, 7).replace('-', '');
+      
+      const { data: lastLead } = await supabaseAdmin
+        .from('leads')
+        .select('lead_number')
+        .like('lead_number', `L-${yearMonth}%`)
+        .order('lead_number', { ascending: false })
+        .limit(1);
+      
+      let nextNumber = 1;
+      if (lastLead && lastLead.length > 0) {
+        const match = lastLead[0].lead_number.match(/L-\d{6}-(\d{4})/);
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1;
+        }
+      }
+      
+      const leadNumber = `L-${yearMonth}-${nextNumber.toString().padStart(4, '0')}`;
+      
+      // Create lead in Supabase
+      const { data: lead, error } = await supabaseAdmin
+        .from('leads')
+        .insert({ ...leadData, lead_number: leadNumber })
+        .select()
+        .single();
+        
+      if (error) throw error;
       res.status(201).json(lead);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -282,7 +495,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { customerId, leadId } = req.params;
       const { userId } = req.body;
       
-      const lead = await storage.assignLead(leadId, customerId, userId);
+      // Assign lead in Supabase
+      const { data: lead, error } = await supabaseAdmin
+        .from('leads')
+        .update({ assigned_user_id: userId })
+        .eq('id', leadId)
+        .eq('customer_id', customerId)
+        .select()
+        .single();
+        
+      if (error) throw error;
       res.json(lead);
     } catch (error) {
       console.error("Error assigning lead:", error);
@@ -293,8 +515,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/crm/admin-stats/:customerId', async (req, res) => {
     try {
       const { customerId } = req.params;
-      const leads = await storage.getLeads(customerId);
-      const users = await storage.getCustomerUsers(customerId);
+      // Get stats from Supabase
+      const { data: leads, error: leadsError } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('customer_id', customerId);
+        
+      const { data: users, error: usersError } = await supabaseAdmin
+        .from('customer_users')
+        .select('*')
+        .eq('customer_id', customerId);
+        
+      if (leadsError || usersError) throw new Error('Failed to fetch stats');
       
       const activeLeads = leads.filter(lead => lead.status === 'available' || lead.status === 'assigned').length;
       const bookedLeads = leads.filter(lead => lead.status === 'booked').length;
@@ -316,12 +548,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/crm/user-stats/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      const user = await storage.getCustomerUserById(userId);
+      // Get user from Supabase
+      const { data: user, error: userError } = await supabaseAdmin
+        .from('customer_users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (userError) throw userError;
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      const userLeads = await storage.getLeads(user.customerId, userId);
+      // Get user leads from Supabase
+      const { data: userLeads, error: leadsError } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('customer_id', user.customer_id)
+        .eq('assigned_user_id', userId);
+        
+      if (leadsError) throw leadsError;
       const bookedLeads = userLeads.filter(lead => lead.status === 'booked').length;
       const totalLeads = userLeads.length;
       const successRate = totalLeads > 0 ? Math.round((bookedLeads / totalLeads) * 100) : 0;
@@ -342,7 +588,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/crm/quotes/:customerId', async (req, res) => {
     try {
       const { customerId } = req.params;
-      const quotes = await storage.getQuotes(customerId);
+      // Get quotes from Supabase
+      const { data: quotes, error } = await supabaseAdmin
+        .from('quotes')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
       res.json(quotes);
     } catch (error) {
       console.error("Error fetching quotes:", error);
@@ -355,13 +608,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { leadId } = req.params;
       const quoteData = req.body;
       
-      // Get customer ID from lead
-      const lead = await storage.getLeadById(leadId, quoteData.customerId || '');
-      if (!lead) {
+      // Get lead from Supabase
+      const { data: lead, error: leadError } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .single();
+        
+      if (leadError || !lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
       
-      const quote = await storage.convertLeadToQuote(leadId, lead.customerId, quoteData);
+      // Create quote from lead data
+      const { data: quote, error: quoteError } = await supabaseAdmin
+        .from('quotes')
+        .insert({
+          customer_id: lead.customer_id,
+          lead_id: leadId,
+          pickup_location: lead.pickup_location,
+          dropoff_location: lead.dropoff_location,
+          vehicle_year: lead.vehicle_year,
+          vehicle_make: lead.vehicle_make,
+          vehicle_model: lead.vehicle_model,
+          transport_type: lead.transport_type,
+          ...quoteData
+        })
+        .select()
+        .single();
+        
+      if (quoteError) throw quoteError;
+      
+      // Update lead status to converted
+      await supabaseAdmin
+        .from('leads')
+        .update({ status: 'converted' })
+        .eq('id', leadId);
       res.json(quote);
     } catch (error) {
       console.error("Error converting lead to quote:", error);
