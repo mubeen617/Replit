@@ -1,9 +1,4 @@
 import {
-  users,
-  customers,
-  customerUsers,
-  leads,
-  quotes,
   type User,
   type UpsertUser,
   type Customer,
@@ -15,8 +10,7 @@ import {
   type Quote,
   type InsertQuote,
 } from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, ilike, or, and, count, sql } from "drizzle-orm";
+import { supabase } from "./supabase";
 import bcrypt from "bcryptjs";
 
 // Interface for storage operations
@@ -72,159 +66,237 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations (IMPORTANT: mandatory for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return undefined; // Row not found
+      throw new Error(`Error fetching user: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
+    const { data, error } = await supabase
+      .from('users')
+      .upsert({
+        ...userData,
+        updated_at: new Date().toISOString(),
       })
-      .returning();
-    return user;
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error upserting user: ${error.message}`);
+    }
+    
+    return data;
   }
 
   // Customer operations
   async getCustomers(search?: string, offset = 0, limit = 10): Promise<{ customers: Customer[], total: number }> {
-    const baseQuery = db.select().from(customers);
+    let query = supabase.from('customers').select('*', { count: 'exact' });
     
     if (search) {
-      const searchCondition = or(
-        ilike(customers.name, `%${search}%`),
-        ilike(customers.domain, `%${search}%`),
-        ilike(customers.adminName, `%${search}%`),
-        ilike(customers.adminEmail, `%${search}%`)
-      );
-      
-      const [customersResult, totalResult] = await Promise.all([
-        baseQuery.where(searchCondition).orderBy(desc(customers.createdAt)).offset(offset).limit(limit),
-        db.select({ count: count() }).from(customers).where(searchCondition)
-      ]);
-
-      return {
-        customers: customersResult,
-        total: totalResult[0].count
-      };
-    } else {
-      const [customersResult, totalResult] = await Promise.all([
-        baseQuery.orderBy(desc(customers.createdAt)).offset(offset).limit(limit),
-        db.select({ count: count() }).from(customers)
-      ]);
-
-      return {
-        customers: customersResult,
-        total: totalResult[0].count
-      };
+      query = query.or(`name.ilike.%${search}%,domain.ilike.%${search}%,admin_name.ilike.%${search}%,admin_email.ilike.%${search}%`);
     }
+    
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+    
+    if (error) {
+      throw new Error(`Error fetching customers: ${error.message}`);
+    }
+    
+    return {
+      customers: data || [],
+      total: count || 0
+    };
   }
 
   async getCustomerById(id: string): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
-    return customer;
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return undefined; // Row not found
+      throw new Error(`Error fetching customer: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async createCustomer(customerData: InsertCustomer): Promise<Customer> {
     // Hash the password before storing
     const hashedPassword = await bcrypt.hash(customerData.adminPassword, 10);
     
-    const [created] = await db
-      .insert(customers)
-      .values({
+    const { data, error } = await supabase
+      .from('customers')
+      .insert({
         ...customerData,
-        adminPassword: hashedPassword,
+        admin_password: hashedPassword,
       })
-      .returning();
-    return created;
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error creating customer: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async updateCustomer(id: string, customerData: Partial<InsertCustomer>): Promise<Customer> {
-    const updateData: any = { ...customerData, updatedAt: new Date() };
+    const updateData: any = { 
+      ...customerData, 
+      updated_at: new Date().toISOString() 
+    };
     
     // Hash password if it's being updated
     if (customerData.adminPassword) {
-      updateData.adminPassword = await bcrypt.hash(customerData.adminPassword, 10);
+      updateData.admin_password = await bcrypt.hash(customerData.adminPassword, 10);
+      delete updateData.adminPassword;
     }
     
-    const [updated] = await db
-      .update(customers)
-      .set(updateData)
-      .where(eq(customers.id, id))
-      .returning();
-    return updated;
+    const { data, error } = await supabase
+      .from('customers')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error updating customer: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    await db.delete(customers).where(eq(customers.id, id));
+    const { error } = await supabase
+      .from('customers')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      throw new Error(`Error deleting customer: ${error.message}`);
+    }
   }
 
   // Customer user operations
   async getCustomerUsers(customerId: string, search?: string): Promise<CustomerUser[]> {
+    let query = supabase
+      .from('customer_users')
+      .select('*')
+      .eq('customer_id', customerId);
+    
     if (search) {
-      return db.select()
-        .from(customerUsers)
-        .where(
-          and(
-            eq(customerUsers.customerId, customerId),
-            or(
-              ilike(customerUsers.email, `%${search}%`),
-              ilike(customerUsers.firstName, `%${search}%`),
-              ilike(customerUsers.lastName, `%${search}%`)
-            )
-          )
-        )
-        .orderBy(desc(customerUsers.createdAt));
+      query = query.or(`email.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%`);
     }
-
-    return db.select()
-      .from(customerUsers)
-      .where(eq(customerUsers.customerId, customerId))
-      .orderBy(desc(customerUsers.createdAt));
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) {
+      throw new Error(`Error fetching customer users: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async getCustomerUserById(id: string): Promise<CustomerUser | undefined> {
-    const [user] = await db.select().from(customerUsers).where(eq(customerUsers.id, id));
-    return user;
+    const { data, error } = await supabase
+      .from('customer_users')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return undefined; // Row not found
+      throw new Error(`Error fetching customer user: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async createCustomerUser(userData: InsertCustomerUser): Promise<CustomerUser> {
     // Hash the password before storing
     const hashedPassword = await bcrypt.hash(userData.password, 10);
     
-    const [created] = await db
-      .insert(customerUsers)
-      .values({
+    const { data, error } = await supabase
+      .from('customer_users')
+      .insert({
         ...userData,
+        customer_id: userData.customerId,
+        first_name: userData.firstName,
+        last_name: userData.lastName,
         password: hashedPassword,
       })
-      .returning();
-    return created;
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error creating customer user: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async updateCustomerUser(id: string, userData: Partial<InsertCustomerUser>): Promise<CustomerUser> {
-    const updateData: any = { ...userData, updatedAt: new Date() };
+    const updateData: any = { 
+      ...userData, 
+      updated_at: new Date().toISOString() 
+    };
+    
+    // Map camelCase to snake_case for database columns
+    if (userData.customerId) {
+      updateData.customer_id = userData.customerId;
+      delete updateData.customerId;
+    }
+    if (userData.firstName) {
+      updateData.first_name = userData.firstName;
+      delete updateData.firstName;
+    }
+    if (userData.lastName) {
+      updateData.last_name = userData.lastName;
+      delete updateData.lastName;
+    }
     
     // Hash password if it's being updated
     if (userData.password) {
       updateData.password = await bcrypt.hash(userData.password, 10);
     }
     
-    const [updated] = await db
-      .update(customerUsers)
-      .set(updateData)
-      .where(eq(customerUsers.id, id))
-      .returning();
-    return updated;
+    const { data, error } = await supabase
+      .from('customer_users')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error updating customer user: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async deleteCustomerUser(id: string): Promise<void> {
-    await db.delete(customerUsers).where(eq(customerUsers.id, id));
+    const { error } = await supabase
+      .from('customer_users')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      throw new Error(`Error deleting customer user: ${error.message}`);
+    }
   }
 
   // Stats
@@ -234,31 +306,34 @@ export class DatabaseStorage implements IStorage {
     pendingUsers: number;
     issues: number;
   }> {
-    const [totalCustomersResult] = await db.select({ count: count() }).from(customers);
-    const [activeUsersResult] = await db.select({ count: count() }).from(customerUsers).where(eq(customerUsers.status, 'active'));
-    const [pendingUsersResult] = await db.select({ count: count() }).from(customerUsers).where(eq(customerUsers.status, 'pending'));
-    const [issuesResult] = await db.select({ count: count() }).from(customers).where(eq(customers.status, 'suspended'));
+    const [totalCustomersResult, activeUsersResult, pendingUsersResult, issuesResult] = await Promise.all([
+      supabase.from('customers').select('*', { count: 'exact', head: true }),
+      supabase.from('customer_users').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      supabase.from('customer_users').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('customers').select('*', { count: 'exact', head: true }).eq('status', 'suspended'),
+    ]);
 
     return {
-      totalCustomers: totalCustomersResult.count,
-      activeUsers: activeUsersResult.count,
-      pendingUsers: pendingUsersResult.count,
-      issues: issuesResult.count,
+      totalCustomers: totalCustomersResult.count || 0,
+      activeUsers: activeUsersResult.count || 0,
+      pendingUsers: pendingUsersResult.count || 0,
+      issues: issuesResult.count || 0,
     };
   }
   
-  // Authentication helpers for future CRM portal
+  // Authentication helpers for CRM portal
   async verifyCustomerPassword(email: string, password: string): Promise<Customer | null> {
-    const [customer] = await db
-      .select()
-      .from(customers)
-      .where(eq(customers.adminEmail, email));
+    const { data: customer, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('admin_email', email)
+      .single();
     
-    if (!customer) {
+    if (error || !customer) {
       return null;
     }
     
-    const isPasswordValid = await bcrypt.compare(password, customer.adminPassword);
+    const isPasswordValid = await bcrypt.compare(password, customer.admin_password);
     if (!isPasswordValid) {
       return null;
     }
@@ -267,12 +342,13 @@ export class DatabaseStorage implements IStorage {
   }
   
   async verifyUserPassword(email: string, password: string): Promise<CustomerUser | null> {
-    const [user] = await db
-      .select()
-      .from(customerUsers)
-      .where(eq(customerUsers.email, email));
+    const { data: user, error } = await supabase
+      .from('customer_users')
+      .select('*')
+      .eq('email', email)
+      .single();
     
-    if (!user) {
+    if (error || !user) {
       return null;
     }
     
@@ -286,35 +362,69 @@ export class DatabaseStorage implements IStorage {
 
   // Lead operations
   async getLeads(customerId: string, assignedUserId?: string): Promise<Lead[]> {
-    const conditions = [eq(leads.customerId, customerId)];
+    let query = supabase
+      .from('leads')
+      .select('*')
+      .eq('customer_id', customerId);
+    
     if (assignedUserId) {
-      conditions.push(eq(leads.assignedUserId, assignedUserId));
+      query = query.eq('assigned_user_id', assignedUserId);
     }
     
-    return await db
-      .select()
-      .from(leads)
-      .where(and(...conditions))
-      .orderBy(desc(leads.createdAt));
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) {
+      throw new Error(`Error fetching leads: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async getLeadById(id: string, customerId: string): Promise<Lead | undefined> {
-    const [lead] = await db
-      .select()
-      .from(leads)
-      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)));
-    return lead;
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('id', id)
+      .eq('customer_id', customerId)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return undefined; // Row not found
+      throw new Error(`Error fetching lead: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async createLead(lead: InsertLead): Promise<Lead> {
     // Generate unique lead number
     const leadNumber = await this.generateUniqueLeadNumber();
     
-    const [newLead] = await db
-      .insert(leads)
-      .values({ ...lead, leadNumber })
-      .returning();
-    return newLead;
+    const { data, error } = await supabase
+      .from('leads')
+      .insert({
+        ...lead,
+        customer_id: lead.customerId,
+        contact_name: lead.contactName,
+        contact_email: lead.contactEmail,
+        contact_phone: lead.contactPhone,
+        pickup_date: lead.pickupDate?.toISOString(),
+        delivery_date: lead.deliveryDate?.toISOString(),
+        customer_rate: lead.customerRate,
+        vehicle_type: lead.vehicleType,
+        transport_type: lead.transportType,
+        assigned_user_id: lead.assignedUserId,
+        external_id: lead.externalId,
+        lead_number: leadNumber,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error creating lead: ${error.message}`);
+    }
+    
+    return data;
   }
 
   private async generateUniqueLeadNumber(): Promise<string> {
@@ -323,16 +433,20 @@ export class DatabaseStorage implements IStorage {
     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
     
     // Find the highest sequence number for current year-month
-    const existingLeads = await db
-      .select({ leadNumber: leads.leadNumber })
-      .from(leads)
-      .where(sql`${leads.leadNumber} LIKE ${`L-${year}${month}-%`}`)
-      .orderBy(sql`${leads.leadNumber} DESC`)
+    const { data: existingLeads, error } = await supabase
+      .from('leads')
+      .select('lead_number')
+      .like('lead_number', `L-${year}${month}%`)
+      .order('lead_number', { ascending: false })
       .limit(1);
     
+    if (error) {
+      throw new Error(`Error generating lead number: ${error.message}`);
+    }
+    
     let sequence = 1;
-    if (existingLeads.length > 0) {
-      const lastNumber = existingLeads[0].leadNumber;
+    if (existingLeads && existingLeads.length > 0) {
+      const lastNumber = existingLeads[0].lead_number;
       const match = lastNumber.match(/L-\d{6}-(\d+)$/);
       if (match) {
         sequence = parseInt(match[1]) + 1;
@@ -343,18 +457,82 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLead(id: string, customerId: string, lead: Partial<InsertLead>): Promise<Lead> {
-    const [updatedLead] = await db
-      .update(leads)
-      .set({ ...lead, updatedAt: new Date() })
-      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)))
-      .returning();
-    return updatedLead;
+    const updateData: any = { 
+      ...lead, 
+      updated_at: new Date().toISOString() 
+    };
+    
+    // Map camelCase to snake_case for database columns
+    if (lead.customerId) {
+      updateData.customer_id = lead.customerId;
+      delete updateData.customerId;
+    }
+    if (lead.contactName) {
+      updateData.contact_name = lead.contactName;
+      delete updateData.contactName;
+    }
+    if (lead.contactEmail) {
+      updateData.contact_email = lead.contactEmail;
+      delete updateData.contactEmail;
+    }
+    if (lead.contactPhone) {
+      updateData.contact_phone = lead.contactPhone;
+      delete updateData.contactPhone;
+    }
+    if (lead.pickupDate) {
+      updateData.pickup_date = lead.pickupDate.toISOString();
+      delete updateData.pickupDate;
+    }
+    if (lead.deliveryDate) {
+      updateData.delivery_date = lead.deliveryDate.toISOString();
+      delete updateData.deliveryDate;
+    }
+    if (lead.customerRate) {
+      updateData.customer_rate = lead.customerRate;
+      delete updateData.customerRate;
+    }
+    if (lead.vehicleType) {
+      updateData.vehicle_type = lead.vehicleType;
+      delete updateData.vehicleType;
+    }
+    if (lead.transportType) {
+      updateData.transport_type = lead.transportType;
+      delete updateData.transportType;
+    }
+    if (lead.assignedUserId) {
+      updateData.assigned_user_id = lead.assignedUserId;
+      delete updateData.assignedUserId;
+    }
+    if (lead.externalId) {
+      updateData.external_id = lead.externalId;
+      delete updateData.externalId;
+    }
+    
+    const { data, error } = await supabase
+      .from('leads')
+      .update(updateData)
+      .eq('id', id)
+      .eq('customer_id', customerId)
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error updating lead: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async deleteLead(id: string, customerId: string): Promise<void> {
-    await db
-      .delete(leads)
-      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)));
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .eq('id', id)
+      .eq('customer_id', customerId);
+    
+    if (error) {
+      throw new Error(`Error deleting lead: ${error.message}`);
+    }
   }
 
   async assignLead(leadId: string, customerId: string, userId: string): Promise<Lead> {
@@ -392,15 +570,13 @@ export class DatabaseStorage implements IStorage {
       for (const leadData of leadsData) {
         // Skip if lead already exists based on external ID
         if (leadData.id || leadData.external_id) {
-          const existing = await db
-            .select()
-            .from(leads)
-            .where(and(
-              eq(leads.customerId, customerId),
-              eq(leads.externalId, leadData.id || leadData.external_id)
-            ));
+          const { data: existing, error } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('customer_id', customerId)
+            .eq('external_id', leadData.id || leadData.external_id);
           
-          if (existing.length > 0) {
+          if (!error && existing && existing.length > 0) {
             continue;
           }
         }
@@ -439,42 +615,144 @@ export class DatabaseStorage implements IStorage {
 
   // Quote operations
   async getQuotes(customerId: string): Promise<Quote[]> {
-    return await db
-      .select()
-      .from(quotes)
-      .where(eq(quotes.customerId, customerId))
-      .orderBy(desc(quotes.createdAt));
+    const { data, error } = await supabase
+      .from('quotes')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      throw new Error(`Error fetching quotes: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async getQuoteById(id: string, customerId: string): Promise<Quote | undefined> {
-    const [quote] = await db
-      .select()
-      .from(quotes)
-      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)));
-    return quote;
+    const { data, error } = await supabase
+      .from('quotes')
+      .select('*')
+      .eq('id', id)
+      .eq('customer_id', customerId)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return undefined; // Row not found
+      throw new Error(`Error fetching quote: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async createQuote(quote: InsertQuote): Promise<Quote> {
-    const [newQuote] = await db
-      .insert(quotes)
-      .values(quote)
-      .returning();
-    return newQuote;
+    const { data, error } = await supabase
+      .from('quotes')
+      .insert({
+        ...quote,
+        customer_id: quote.customerId,
+        lead_id: quote.leadId,
+        created_by_user_id: quote.createdByUserId,
+        carrier_fees: quote.carrierFees,
+        broker_fees: quote.brokerFees,
+        total_tariff: quote.totalTariff,
+        pickup_person_name: quote.pickupPersonName,
+        pickup_person_phone: quote.pickupPersonPhone,
+        pickup_address: quote.pickupAddress,
+        dropoff_person_name: quote.dropoffPersonName,
+        dropoff_person_phone: quote.dropoffPersonPhone,
+        dropoff_address: quote.dropoffAddress,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error creating quote: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async updateQuote(id: string, customerId: string, quote: Partial<InsertQuote>): Promise<Quote> {
-    const [updatedQuote] = await db
-      .update(quotes)
-      .set({ ...quote, updatedAt: new Date() })
-      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)))
-      .returning();
-    return updatedQuote;
+    const updateData: any = { 
+      ...quote, 
+      updated_at: new Date().toISOString() 
+    };
+    
+    // Map camelCase to snake_case for database columns
+    if (quote.customerId) {
+      updateData.customer_id = quote.customerId;
+      delete updateData.customerId;
+    }
+    if (quote.leadId) {
+      updateData.lead_id = quote.leadId;
+      delete updateData.leadId;
+    }
+    if (quote.createdByUserId) {
+      updateData.created_by_user_id = quote.createdByUserId;
+      delete updateData.createdByUserId;
+    }
+    if (quote.carrierFees) {
+      updateData.carrier_fees = quote.carrierFees;
+      delete updateData.carrierFees;
+    }
+    if (quote.brokerFees) {
+      updateData.broker_fees = quote.brokerFees;
+      delete updateData.brokerFees;
+    }
+    if (quote.totalTariff) {
+      updateData.total_tariff = quote.totalTariff;
+      delete updateData.totalTariff;
+    }
+    if (quote.pickupPersonName) {
+      updateData.pickup_person_name = quote.pickupPersonName;
+      delete updateData.pickupPersonName;
+    }
+    if (quote.pickupPersonPhone) {
+      updateData.pickup_person_phone = quote.pickupPersonPhone;
+      delete updateData.pickupPersonPhone;
+    }
+    if (quote.pickupAddress) {
+      updateData.pickup_address = quote.pickupAddress;
+      delete updateData.pickupAddress;
+    }
+    if (quote.dropoffPersonName) {
+      updateData.dropoff_person_name = quote.dropoffPersonName;
+      delete updateData.dropoffPersonName;
+    }
+    if (quote.dropoffPersonPhone) {
+      updateData.dropoff_person_phone = quote.dropoffPersonPhone;
+      delete updateData.dropoffPersonPhone;
+    }
+    if (quote.dropoffAddress) {
+      updateData.dropoff_address = quote.dropoffAddress;
+      delete updateData.dropoffAddress;
+    }
+    
+    const { data, error } = await supabase
+      .from('quotes')
+      .update(updateData)
+      .eq('id', id)
+      .eq('customer_id', customerId)
+      .select()
+      .single();
+    
+    if (error) {
+      throw new Error(`Error updating quote: ${error.message}`);
+    }
+    
+    return data;
   }
 
   async deleteQuote(id: string, customerId: string): Promise<void> {
-    await db
-      .delete(quotes)
-      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)));
+    const { error } = await supabase
+      .from('quotes')
+      .delete()
+      .eq('id', id)
+      .eq('customer_id', customerId);
+    
+    if (error) {
+      throw new Error(`Error deleting quote: ${error.message}`);
+    }
   }
 
   async convertLeadToQuote(leadId: string, customerId: string, quoteData: Partial<InsertQuote>): Promise<Quote> {
