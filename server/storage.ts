@@ -408,7 +408,9 @@ export class DatabaseStorage implements IStorage {
         // Map API data to our lead structure
         const newLead: InsertLead = {
           customerId,
-          leadNumber: leadData.reference || leadData.id || `API-${Date.now()}`,
+          contactName: leadData.contact_name || leadData.customer_name || 'Unknown',
+          contactEmail: leadData.contact_email || leadData.email || 'unknown@example.com',
+          contactPhone: leadData.contact_phone || leadData.phone || '0000000000',
           origin: leadData.origin || leadData.pickup_location || '',
           destination: leadData.destination || leadData.delivery_location || '',
           pickupDate: new Date(leadData.pickup_date || leadData.pickup_time || Date.now()),
@@ -417,7 +419,7 @@ export class DatabaseStorage implements IStorage {
           weight: leadData.weight,
           vehicleType: leadData.vehicle_type || leadData.car_type || leadData.commodity,
           transportType: leadData.transport_type || leadData.equipment || 'open',
-          status: "available",
+          status: "lead",
           priority: leadData.priority || "normal",
           notes: leadData.notes || leadData.description,
           source: apiEndpoint,
