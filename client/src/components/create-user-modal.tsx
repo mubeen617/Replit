@@ -36,10 +36,10 @@ export function CreateUserModal({ open, onOpenChange, customerId }: CreateUserMo
   const form = useForm<InsertCustomerUser>({
     resolver: zodResolver(insertCustomerUserSchema),
     defaultValues: {
-      customerId,
+      customer_id: customerId,
       email: "",
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       password: "",
       role: "user",
       status: "active",
@@ -102,7 +102,7 @@ export function CreateUserModal({ open, onOpenChange, customerId }: CreateUserMo
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="firstName"
+                  name="first_name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>First Name</FormLabel>
@@ -116,7 +116,7 @@ export function CreateUserModal({ open, onOpenChange, customerId }: CreateUserMo
                 
                 <FormField
                   control={form.control}
-                  name="lastName"
+                  name="last_name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Last Name</FormLabel>

@@ -114,7 +114,7 @@ export default function Users() {
   const customers = customersData?.customers || [];
 
   const handleDelete = (user: CustomerUser) => {
-    if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
+    if (confirm(`Are you sure you want to delete ${user.first_name} ${user.last_name}?`)) {
       deleteMutation.mutate(user.id);
     }
   };
@@ -152,13 +152,13 @@ export default function Users() {
             <div className="flex-shrink-0 h-10 w-10">
               <div className="h-10 w-10 rounded-lg bg-primary-100 flex items-center justify-center">
                 <span className="text-primary-600 font-medium text-sm">
-                  {getInitials(user.firstName, user.lastName)}
+                  {getInitials(user.first_name, user.last_name)}
                 </span>
               </div>
             </div>
             <div className="ml-4">
               <div className="text-sm font-medium text-secondary-900">
-                {user.firstName} {user.lastName}
+                {user.first_name} {user.last_name}
               </div>
               <div className="text-sm text-secondary-500">{user.email}</div>
             </div>
@@ -191,11 +191,11 @@ export default function Users() {
       },
     },
     {
-      accessorKey: "createdAt",
+      accessorKey: "created_at",
       header: "Created",
       cell: ({ row }: { row: { original: CustomerUser } }) => {
         const user = row.original;
-        return user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A';
+        return user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A';
       },
     },
     {

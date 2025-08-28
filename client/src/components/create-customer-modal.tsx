@@ -37,9 +37,9 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
     defaultValues: {
       name: "",
       domain: "",
-      adminName: "",
-      adminEmail: "",
-      adminPassword: "",
+      admin_name: "",
+      admin_email: "",
+      admin_password: "",
       status: "active",
     },
   });
@@ -135,7 +135,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="adminName"
+                  name="admin_name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Full Name</FormLabel>
@@ -149,7 +149,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
                 
                 <FormField
                   control={form.control}
-                  name="adminEmail"
+                  name="admin_email"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Email Address</FormLabel>
@@ -165,7 +165,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
               <div className="grid grid-cols-1 gap-4">
                 <FormField
                   control={form.control}
-                  name="adminPassword"
+                  name="admin_password"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Password</FormLabel>
