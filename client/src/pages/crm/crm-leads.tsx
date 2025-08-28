@@ -72,6 +72,8 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [apiEndpoint, setApiEndpoint] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [isConvertToQuoteOpen, setIsConvertToQuoteOpen] = useState(false);
+  const [leadToConvert, setLeadToConvert] = useState<any>(null);
 
   const userId = userType === "customer" ? (user as Customer).id : (user as CustomerUser).customerId;
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
@@ -159,16 +161,18 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
   });
 
   const convertToQuoteMutation = useMutation({
-    mutationFn: async (leadId: string) => {
+    mutationFn: async ({ leadId, quoteData }: { leadId: string; quoteData: any }) => {
       const response = await fetch(`/api/crm/leads/${userId}/${leadId}/convert-to-quote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify(quoteData),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to convert lead to quote');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to convert lead to quote');
       }
       
       return response.json();
@@ -180,6 +184,8 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/leads", userId, agentId] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/quotes", userId] });
+      setIsConvertToQuoteOpen(false);
+      setLeadToConvert(null);
     },
     onError: (error: any) => {
       toast({
@@ -263,6 +269,27 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
     };
 
     addLeadMutation.mutate(leadData);
+  };
+
+  const handleConvertToQuote = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!leadToConvert) return;
+    
+    const formData = new FormData(e.currentTarget);
+    
+    const quoteData = {
+      carrier_fees: formData.get("carrierFees") as string,
+      broker_fees: formData.get("brokerFees") as string,
+      total_tariff: formData.get("totalTariff") as string,
+      pickup_person_name: formData.get("pickupPersonName") as string,
+      pickup_person_phone: formData.get("pickupPersonPhone") as string,
+      pickup_address: formData.get("pickupAddress") as string,
+      dropoff_person_name: formData.get("dropoffPersonName") as string,
+      dropoff_person_phone: formData.get("dropoffPersonPhone") as string,
+      dropoff_address: formData.get("dropoffAddress") as string,
+    };
+
+    convertToQuoteMutation.mutate({ leadId: leadToConvert.id, quoteData });
   };
 
   const getStatusBadgeColor = (status: string) => {
@@ -726,7 +753,10 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
                             </DropdownMenuItem>
                             {lead.status === 'lead' && (
                               <DropdownMenuItem 
-                                onClick={() => convertToQuoteMutation.mutate(lead.id)}
+                                onClick={() => {
+                                  setLeadToConvert(lead);
+                                  setIsConvertToQuoteOpen(true);
+                                }}
                                 data-testid={`action-convert-to-quote-${lead.id}`}
                               >
                                 <ArrowRight className="h-4 w-4 mr-2" />
@@ -750,6 +780,130 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Convert to Quote Dialog */}
+      <Dialog open={isConvertToQuoteOpen} onOpenChange={setIsConvertToQuoteOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Convert Lead to Quote</DialogTitle>
+            <DialogDescription>
+              Fill in the quote details for lead {leadToConvert?.lead_number}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleConvertToQuote} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="carrierFees">Carrier Fees ($)</Label>
+                <Input
+                  id="carrierFees"
+                  name="carrierFees"
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brokerFees">Broker Fees ($)</Label>
+                <Input
+                  id="brokerFees"
+                  name="brokerFees"
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="totalTariff">Total Tariff ($)</Label>
+              <Input
+                id="totalTariff"
+                name="totalTariff"
+                type="number"
+                step="0.01"
+                required
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pickupPersonName">Pickup Contact Name</Label>
+                <Input
+                  id="pickupPersonName"
+                  name="pickupPersonName"
+                  required
+                  placeholder="John Smith"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pickupPersonPhone">Pickup Contact Phone</Label>
+                <Input
+                  id="pickupPersonPhone"
+                  name="pickupPersonPhone"
+                  required
+                  placeholder="(555) 123-4567"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pickupAddress">Pickup Address</Label>
+              <Input
+                id="pickupAddress"
+                name="pickupAddress"
+                required
+                placeholder="123 Main St, City, State 12345"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dropoffPersonName">Dropoff Contact Name</Label>
+                <Input
+                  id="dropoffPersonName"
+                  name="dropoffPersonName"
+                  required
+                  placeholder="Jane Doe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dropoffPersonPhone">Dropoff Contact Phone</Label>
+                <Input
+                  id="dropoffPersonPhone"
+                  name="dropoffPersonPhone"
+                  required
+                  placeholder="(555) 987-6543"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dropoffAddress">Dropoff Address</Label>
+              <Input
+                id="dropoffAddress"
+                name="dropoffAddress"
+                required
+                placeholder="456 Oak Ave, City, State 67890"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsConvertToQuoteOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={convertToQuoteMutation.isPending}>
+                {convertToQuoteMutation.isPending && (
+                  <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                )}
+                Convert to Quote
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
