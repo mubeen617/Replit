@@ -160,7 +160,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const convertToQuoteMutation = useMutation({
     mutationFn: async (leadId: string) => {
-      const response = await fetch(`/api/crm/leads/${leadId}/convert-to-quote`, {
+      const response = await fetch(`/api/crm/leads/${userId}/${leadId}/convert-to-quote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
