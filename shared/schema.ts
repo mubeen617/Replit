@@ -327,8 +327,6 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
 
 export const insertDispatchSchema = createInsertSchema(dispatch).omit({
   id: true,
-  created_at: true,
-  updated_at: true,
 });
 
 // Types
