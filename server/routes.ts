@@ -4,6 +4,7 @@ import { supabaseAdmin } from "./supabase";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertCustomerSchema, insertCustomerUserSchema, insertLeadSchema, insertQuoteSchema } from "@shared/schema";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -131,10 +132,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/customers', isAuthenticated, async (req, res) => {
     try {
       const customerData = insertCustomerSchema.parse(req.body);
+      
+      // Hash the admin password before storing
+      const hashedPassword = await bcrypt.hash(customerData.admin_password, 12);
+      const customerWithHashedPassword = {
+        ...customerData,
+        admin_password: hashedPassword
+      };
+      
       // Create customer in Supabase
       const { data: customer, error } = await supabaseAdmin
         .from('customers')
-        .insert(customerData)
+        .insert(customerWithHashedPassword)
         .select()
         .single();
         
@@ -214,12 +223,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = insertCustomerUserSchema.parse({
         ...req.body,
-        customerId: req.params.customerId
+        customer_id: req.params.customerId
       });
+      
+      // Hash the password before storing
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      const userWithHashedPassword = {
+        ...userData,
+        password: hashedPassword
+      };
+      
       // Create customer user in Supabase
       const { data: user, error } = await supabaseAdmin
         .from('customer_users')
-        .insert(userData)
+        .insert(userWithHashedPassword)
         .select()
         .single();
         
@@ -293,7 +310,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check password
-      const bcrypt = require('bcryptjs');
       const isValidPassword = await bcrypt.compare(password, customer.admin_password);
       if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid email or password" });
@@ -329,7 +345,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check password
-      const bcrypt = require('bcryptjs');
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid email or password" });
