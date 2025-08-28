@@ -463,7 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { customerId } = req.params;
       const leadData = insertLeadSchema.parse({
         ...req.body,
-        customerId
+        customer_id: customerId
       });
       
       // Generate lead number
@@ -606,64 +606,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get quotes from Supabase
       const { data: quotes, error } = await supabaseAdmin
         .from('quotes')
-        .select('*')
+        .select('*, leads!inner(*)')
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      res.json(quotes);
+      res.json(quotes || []);
     } catch (error) {
       console.error("Error fetching quotes:", error);
       res.status(500).json({ message: "Failed to fetch quotes" });
     }
   });
 
-  app.post('/api/crm/leads/:leadId/convert-to-quote', async (req, res) => {
+  app.post('/api/crm/leads/:customerId/:leadId/convert-to-quote', async (req, res) => {
     try {
-      const { leadId } = req.params;
-      const quoteData = req.body;
+      const { customerId, leadId } = req.params;
       
-      // Get lead from Supabase
-      const { data: lead, error: leadError } = await supabaseAdmin
-        .from('leads')
-        .select('*')
-        .eq('id', leadId)
-        .single();
+      // Get or create a user for this customer to use as the created_by_user_id
+      let { data: users, error: usersError } = await supabaseAdmin
+        .from('customer_users')
+        .select('id')
+        .eq('customer_id', customerId)
+        .limit(1);
         
-      if (leadError || !lead) {
-        return res.status(404).json({ message: "Lead not found" });
+      if (usersError) throw usersError;
+      
+      let userId = users?.[0]?.id;
+      
+      // If no users exist, create a default system user
+      if (!userId) {
+        const { data: newUser, error: createError } = await supabaseAdmin
+          .from('customer_users')
+          .insert({
+            customer_id: customerId,
+            email: 'system@example.com',
+            first_name: 'System',
+            last_name: 'User',
+            password: await bcrypt.hash('system123', 12),
+            role: 'admin'
+          })
+          .select('id')
+          .single();
+          
+        if (createError) throw createError;
+        userId = newUser.id;
       }
       
-      // Create quote from lead data
+      const quoteData = insertQuoteSchema.parse({
+        ...req.body,
+        lead_id: leadId,
+        customer_id: customerId,
+        created_by_user_id: userId
+      });
+      
+      // Create quote in Supabase
       const { data: quote, error: quoteError } = await supabaseAdmin
         .from('quotes')
-        .insert({
-          customer_id: lead.customer_id,
-          lead_id: leadId,
-          pickup_location: lead.pickup_location,
-          dropoff_location: lead.dropoff_location,
-          vehicle_year: lead.vehicle_year,
-          vehicle_make: lead.vehicle_make,
-          vehicle_model: lead.vehicle_model,
-          transport_type: lead.transport_type,
-          ...quoteData
-        })
+        .insert(quoteData)
         .select()
         .single();
         
       if (quoteError) throw quoteError;
       
-      // Update lead status to converted
-      await supabaseAdmin
+      // Update lead status to 'quote'
+      const { error: leadUpdateError } = await supabaseAdmin
         .from('leads')
-        .update({ status: 'converted' })
-        .eq('id', leadId);
-      res.json(quote);
+        .update({ status: 'quote' })
+        .eq('id', leadId)
+        .eq('customer_id', customerId);
+        
+      if (leadUpdateError) throw leadUpdateError;
+      
+      res.status(201).json(quote);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid quote data", errors: error.errors });
+      }
       console.error("Error converting lead to quote:", error);
       res.status(500).json({ message: "Failed to convert lead to quote" });
     }
   });
+
+
 
   app.post('/api/crm/quotes/:quoteId/convert-to-order', async (req, res) => {
     try {

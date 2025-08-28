@@ -156,7 +156,7 @@ export const quotes = pgTable("quotes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   lead_id: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
   customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
-  created_by_user_id: varchar("created_by_user_id").references(() => customerUsers.id, { onDelete: "set null" }).notNull(),
+  created_by_user_id: varchar("created_by_user_id").references(() => customerUsers.id, { onDelete: "set null" }),
   
   // Tariff Details
   carrier_fees: varchar("carrier_fees").notNull(),
@@ -178,51 +178,51 @@ export const quotes = pgTable("quotes", {
   
   // Terms and Conditions
   special_terms: text("special_terms"),
-  standardTerms: text("standard_terms"),
+  standard_terms: text("standard_terms"),
   
   status: varchar("status").default("draft").notNull(), // draft, sent, accepted, rejected, expired
-  validUntil: timestamp("valid_until"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  valid_until: timestamp("valid_until"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 
 // Orders table - quotes converted to orders
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  quoteId: varchar("quote_id").references(() => quotes.id, { onDelete: "cascade" }).notNull(),
-  leadId: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
-  customerId: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
+  quote_id: varchar("quote_id").references(() => quotes.id, { onDelete: "cascade" }).notNull(),
+  lead_id: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
+  customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
   
-  orderNumber: varchar("order_number").notNull().unique(),
+  order_number: varchar("order_number").notNull().unique(),
   
   // Contract Details
-  contractType: varchar("contract_type").default("standard").notNull(), // standard, with_cc, without_cc
-  contractSent: boolean("contract_sent").default(false),
-  contractSentAt: timestamp("contract_sent_at"),
-  contractSigned: boolean("contract_signed").default(false),
-  contractSignedAt: timestamp("contract_signed_at"),
-  signatureData: text("signature_data"), // Base64 signature or signature details
+  contract_type: varchar("contract_type").default("standard").notNull(), // standard, with_cc, without_cc
+  contract_sent: boolean("contract_sent").default(false),
+  contract_sent_at: timestamp("contract_sent_at"),
+  contract_signed: boolean("contract_signed").default(false),
+  contract_signed_at: timestamp("contract_signed_at"),
+  signature_data: text("signature_data"), // Base64 signature or signature details
   
   // Change Orders
-  changeOrders: jsonb("change_orders"), // Array of change order history
+  change_orders: jsonb("change_orders"), // Array of change order history
   
   status: varchar("status").default("pending_signature").notNull(), // pending_signature, signed, in_progress, change_requested, cancelled
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 
 // Dispatch table - orders converted to dispatch
 export const dispatch = pgTable("dispatch", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
-  leadId: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
-  customerId: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
+  order_id: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  lead_id: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
+  customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
   
-  dispatchNumber: varchar("dispatch_number").notNull().unique(),
+  dispatch_number: varchar("dispatch_number").notNull().unique(),
   
   // Carrier Details
-  carrierName: varchar("carrier_name"),
-  carrierPhone: varchar("carrier_phone"),
+  carrier_name: varchar("carrier_name"),
+  carrier_phone: varchar("carrier_phone"),
   carrierEmail: varchar("carrier_email"),
   driverName: varchar("driver_name"),
   driverPhone: varchar("driver_phone"),
@@ -274,30 +274,30 @@ export const quotesRelations = relations(quotes, ({ one }) => ({
 
 export const ordersRelations = relations(orders, ({ one }) => ({
   quote: one(quotes, {
-    fields: [orders.quoteId],
+    fields: [orders.quote_id],
     references: [quotes.id],
   }),
   lead: one(leads, {
-    fields: [orders.leadId],
+    fields: [orders.lead_id],
     references: [leads.id],
   }),
   customer: one(customers, {
-    fields: [orders.customerId],
+    fields: [orders.customer_id],
     references: [customers.id],
   }),
 }));
 
 export const dispatchRelations = relations(dispatch, ({ one }) => ({
   order: one(orders, {
-    fields: [dispatch.orderId],
+    fields: [dispatch.order_id],
     references: [orders.id],
   }),
   lead: one(leads, {
-    fields: [dispatch.leadId],
+    fields: [dispatch.lead_id],
     references: [leads.id],
   }),
   customer: one(customers, {
-    fields: [dispatch.customerId],
+    fields: [dispatch.customer_id],
     references: [customers.id],
   }),
 }));
@@ -305,30 +305,30 @@ export const dispatchRelations = relations(dispatch, ({ one }) => ({
 // Schema validations
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
-  leadNumber: true, // Auto-generated
-  createdAt: true,
-  updatedAt: true,
+  lead_number: true, // Auto-generated
+  created_at: true,
+  updated_at: true,
 }).extend({
-  pickupDate: z.string().transform((str) => new Date(str)),
-  deliveryDate: z.string().optional().transform((str) => str ? new Date(str) : undefined),
+  pickup_date: z.string().transform((str) => new Date(str)),
+  delivery_date: z.string().optional().transform((str) => str ? new Date(str) : undefined),
 });
 
 export const insertQuoteSchema = createInsertSchema(quotes).omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
+  created_at: true,
+  updated_at: true,
 });
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
+  created_at: true,
+  updated_at: true,
 });
 
 export const insertDispatchSchema = createInsertSchema(dispatch).omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
+  created_at: true,
+  updated_at: true,
 });
 
 // Types
