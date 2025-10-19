@@ -1,56 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { supabaseAdmin } from "./supabase";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertCustomerSchema, insertCustomerUserSchema, insertLeadSchema, insertQuoteSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      // Fetch or create user in Supabase
-      let { data: user, error } = await supabaseAdmin
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error && error.code === 'PGRST116') {
-        // User doesn't exist, create one
-        const newUser = {
-          id: userId,
-          email: req.user.claims.email,
-          first_name: req.user.claims.given_name || '',
-          last_name: req.user.claims.family_name || '',
-          profile_image_url: req.user.claims.picture || ''
-        };
-        
-        const { data: createdUser, error: createError } = await supabaseAdmin
-          .from('users')
-          .insert(newUser)
-          .select()
-          .single();
-          
-        if (createError) throw createError;
-        user = createdUser;
-      } else if (error) {
-        throw error;
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
   // Stats endpoint
-  app.get('/api/stats', isAuthenticated, async (req, res) => {
+  app.get('/api/stats', async (req, res) => {
     try {
       // Get stats from Supabase
       const { data: customers, error: customersError } = await supabaseAdmin
@@ -78,7 +35,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Customer routes
-  app.get('/api/customers', isAuthenticated, async (req, res) => {
+  app.get('/api/customers', async (req, res) => {
     try {
       const search = req.query.search as string;
       const page = parseInt(req.query.page as string) || 1;
@@ -106,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/customers/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/customers/:id', async (req, res) => {
     try {
       // Get customer from Supabase
       const { data: customer, error } = await supabaseAdmin
@@ -129,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/customers', isAuthenticated, async (req, res) => {
+  app.post('/api/customers', async (req, res) => {
     try {
       const customerData = insertCustomerSchema.parse(req.body);
       
@@ -158,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/customers/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/customers/:id', async (req, res) => {
     try {
       const customerData = insertCustomerSchema.partial().parse(req.body);
       // Update customer in Supabase
@@ -180,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/customers/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/customers/:id', async (req, res) => {
     try {
       // Delete customer from Supabase
       const { error } = await supabaseAdmin
@@ -197,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Customer user routes
-  app.get('/api/customers/:customerId/users', isAuthenticated, async (req, res) => {
+  app.get('/api/customers/:customerId/users', async (req, res) => {
     try {
       const search = req.query.search as string;
       // Get customer users from Supabase
@@ -219,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/customers/:customerId/users', isAuthenticated, async (req, res) => {
+  app.post('/api/customers/:customerId/users', async (req, res) => {
     try {
       const userData = insertCustomerUserSchema.parse({
         ...req.body,
@@ -251,7 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/customers/:customerId/users/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/customers/:customerId/users/:id', async (req, res) => {
     try {
       const userData = insertCustomerUserSchema.partial().parse(req.body);
       // Update customer user in Supabase
@@ -273,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/customers/:customerId/users/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/customers/:customerId/users/:id', async (req, res) => {
     try {
       // Delete customer user from Supabase
       const { error } = await supabaseAdmin
