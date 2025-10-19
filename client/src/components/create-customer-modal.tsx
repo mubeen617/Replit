@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { useToast } from "@/hooks/use-toast";
 import { insertCustomerSchema, type InsertCustomer } from "@shared/schema";
 import {
@@ -59,17 +58,6 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
       onOpenChange(false);
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to create customer",

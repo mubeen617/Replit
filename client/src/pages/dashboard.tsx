@@ -5,7 +5,12 @@ import { Header } from "@/components/layout/header";
 import { Users, UserCheck, Clock, AlertTriangle } from "lucide-react";
 
 export default function Dashboard() {
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery<{
+    totalCustomers: number;
+    activeUsers: number;
+    pendingUsers: number;
+    issues?: number;
+  }>({
     queryKey: ["/api/stats"],
   });
 

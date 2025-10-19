@@ -20,11 +20,14 @@ export default function Users() {
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const { data: customersData } = useQuery({
+  const { data: customersData } = useQuery<{
+    customers: Customer[];
+    total: number;
+  }>({
     queryKey: ["/api/customers"],
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery({
+  const { data: users, isLoading: usersLoading } = useQuery<CustomerUser[]>({
     queryKey: ["/api/customers", selectedCustomer, "users", { search }],
     enabled: !!selectedCustomer,
   });

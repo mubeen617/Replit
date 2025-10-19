@@ -20,7 +20,10 @@ export default function Customers() {
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const { data: customersData, isLoading: customersLoading } = useQuery({
+  const { data: customersData, isLoading: customersLoading } = useQuery<{
+    customers: Customer[];
+    total: number;
+  }>({
     queryKey: ["/api/customers", { search, page }],
   });
 
@@ -92,14 +95,14 @@ export default function Customers() {
       },
     },
     {
-      accessorKey: "adminName",
+      accessorKey: "admin_name",
       header: "Admin Contact",
       cell: ({ row }: { row: { original: Customer } }) => {
         const customer = row.original;
         return (
           <div>
-            <div className="text-sm text-secondary-900">{customer.adminName}</div>
-            <div className="text-sm text-secondary-500">{customer.adminEmail}</div>
+            <div className="text-sm text-secondary-900">{customer.admin_name}</div>
+            <div className="text-sm text-secondary-500">{customer.admin_email}</div>
           </div>
         );
       },
@@ -117,11 +120,11 @@ export default function Customers() {
       },
     },
     {
-      accessorKey: "createdAt",
+      accessorKey: "created_at",
       header: "Created",
       cell: ({ row }: { row: { original: Customer } }) => {
         const customer = row.original;
-        return customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'N/A';
+        return customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A';
       },
     },
     {
