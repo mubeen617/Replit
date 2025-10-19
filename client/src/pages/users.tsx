@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { DataTable } from "@/components/ui/data-table";
@@ -17,62 +15,18 @@ import type { Customer, CustomerUser } from "@shared/schema";
 
 export default function Users() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Redirect to home if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
-
   const { data: customersData } = useQuery({
     queryKey: ["/api/customers"],
-    queryFn: async () => {
-      const response = await fetch('/api/customers?limit=1000', {
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`${response.status}: ${response.statusText}`);
-      }
-      
-      return response.json();
-    },
-    enabled: isAuthenticated,
   });
 
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["/api/customers", selectedCustomer, "users", { search }],
-    queryFn: async () => {
-      if (!selectedCustomer) return [];
-      
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      
-      const response = await fetch(`/api/customers/${selectedCustomer}/users?${params}`, {
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`${response.status}: ${response.statusText}`);
-      }
-      
-      return response.json();
-    },
-    enabled: isAuthenticated && !!selectedCustomer,
+    enabled: !!selectedCustomer,
   });
 
   const deleteMutation = useMutation({
@@ -88,17 +42,6 @@ export default function Users() {
       });
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to delete user",
@@ -106,10 +49,6 @@ export default function Users() {
       });
     },
   });
-
-  if (isLoading || !isAuthenticated) {
-    return null;
-  }
 
   const customers = customersData?.customers || [];
 

@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { DataTable } from "@/components/ui/data-table";
@@ -17,46 +15,13 @@ import type { Customer } from "@shared/schema";
 
 export default function Customers() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Redirect to home if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized", 
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
-
   const { data: customersData, isLoading: customersLoading } = useQuery({
     queryKey: ["/api/customers", { search, page }],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      params.append('page', page.toString());
-      params.append('limit', '10');
-      
-      const response = await fetch(`/api/customers?${params}`, {
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`${response.status}: ${response.statusText}`);
-      }
-      
-      return response.json();
-    },
-    enabled: isAuthenticated,
   });
 
   const deleteMutation = useMutation({
@@ -72,17 +37,6 @@ export default function Customers() {
       });
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to delete customer",
@@ -90,10 +44,6 @@ export default function Customers() {
       });
     },
   });
-
-  if (isLoading || !isAuthenticated) {
-    return null;
-  }
 
   const customers = customersData?.customers || [];
   const total = customersData?.total || 0;

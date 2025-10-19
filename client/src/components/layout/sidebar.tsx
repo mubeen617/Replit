@@ -1,12 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
-import { Truck, LayoutDashboard, Users, UserCog, Settings, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import type { User } from "@shared/schema";
+import { Truck, LayoutDashboard, Users, UserCog, Settings } from "lucide-react";
 
 export function Sidebar() {
   const [location] = useLocation();
-  const { user } = useAuth() as { user: User | null };
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -14,15 +10,6 @@ export function Sidebar() {
     { name: "User Management", href: "/users", icon: UserCog },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
-
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
-  };
-
-  const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName || !lastName) return "SA";
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
-  };
 
   return (
     <div className="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col">
@@ -62,33 +49,20 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* User Profile */}
+      {/* Admin Profile */}
       <div className="p-4 border-t border-secondary-200 bg-white">
         <div className="flex items-center">
           <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center mr-3">
-            <span className="text-white text-sm font-medium">
-              {getInitials(user?.firstName, user?.lastName)}
-            </span>
+            <span className="text-white text-sm font-medium">SA</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-secondary-900 truncate">
-              {user?.firstName && user?.lastName 
-                ? `${user.firstName} ${user.lastName}`
-                : "Server Admin"
-              }
+              Server Admin
             </p>
             <p className="text-xs text-secondary-600 truncate">
-              {user?.email || "admin@example.com"}
+              Private Access
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-secondary-400 hover:text-secondary-600"
-          >
-            <LogOut size={16} />
-          </Button>
         </div>
       </div>
     </div>

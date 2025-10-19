@@ -1,6 +1,3 @@
-import { useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -8,43 +5,9 @@ import { Header } from "@/components/layout/header";
 import { Users, UserCheck, Clock, AlertTriangle } from "lucide-react";
 
 export default function Dashboard() {
-  const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
-
-  // Redirect to home if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
-
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/stats"],
-    queryFn: async () => {
-      const response = await fetch('/api/stats', {
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`${response.status}: ${response.statusText}`);
-      }
-      
-      return response.json();
-    },
-    enabled: isAuthenticated,
   });
-
-  if (isLoading || !isAuthenticated) {
-    return null;
-  }
 
   const statsCards = [
     {
