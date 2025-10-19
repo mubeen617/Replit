@@ -2,18 +2,22 @@
 
 This is a full-stack web application built for vehicle brokerage CRM administration. It's a modern React-based admin dashboard that allows management of vehicle brokerage companies and their broker agents. The application uses a modern architecture with React frontend connecting directly to Supabase for backend services and database operations.
 
-The system provides authentication via Replit Auth for the Server Panel, plus a separate CRM portal with email/password authentication for vehicle brokers. It's designed for vehicle brokers who receive vehicle shipping leads and distribute them to their broker agents to find carriers and arrange vehicle shipments. The system handles multi-tenant scenarios where each vehicle brokerage company has its own set of broker agents with different roles and permissions.
+The system consists of two distinct access paths: a Server Panel accessible only through private development URL for admin management, and a CRM portal with email/password authentication for vehicle brokers. It's designed for vehicle brokers who receive vehicle shipping leads and distribute them to their broker agents to find carriers and arrange vehicle shipments. The system handles multi-tenant scenarios where each vehicle brokerage company has its own set of broker agents with different roles and permissions.
 
-**Recent Update (August 28, 2025)**: Successfully completed full CRM functionality with working lead management and quote conversion. Major changes include:
+**Recent Update (October 19, 2025)**: Removed Replit Auth from Server Panel for simplified access through private URL. Changes include:
+- **Server Panel Access**: Removed authentication layer; accessible only through private development URL
+- **Simplified Architecture**: Removed Replit Auth, Passport.js, and session management dependencies
+- **Direct Access**: Server panel pages (Dashboard, Customers, Users) now directly accessible
+- **CRM Authentication**: Maintained separate email/password authentication for CRM portal users
+- **Security**: Server panel protected by Replit's private development URL (only accessible to Repl owner)
+
+**Previous Update (August 28, 2025)**: Successfully completed full CRM functionality with working lead management and quote conversion. Major changes include:
 - **Full CRM Functionality**: Complete working lead creation and quote conversion workflow
-- **Authentication System**: Dual authentication working (Replit Auth for admin, bcrypt hashed passwords for CRM users)
 - **Lead Management**: Auto-generated lead numbers (L-YYYYMM-NNNN format), proper field validation, CRUD operations
 - **Quote Conversion**: Working lead-to-quote conversion with automatic user creation when needed
 - **Database Operations**: All operations through Supabase with proper snake_case field naming
-- **Form Validation**: Frontend forms properly aligned with backend API expectations
 - **Password Security**: Proper bcrypt hashing for all customer and user passwords
 - **Schema Consistency**: Fixed all field naming mismatches between frontend and backend
-- **Error Handling**: Comprehensive error handling and user feedback throughout the application
 
 # User Preferences
 
@@ -30,31 +34,29 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Radix UI primitives wrapped in custom components for accessibility and consistency
 
 ## Backend Architecture
-- **Runtime**: Node.js with Express.js framework providing full API layer and session management
-- **Database**: Supabase PostgreSQL with secure authentication and real-time capabilities
+- **Runtime**: Node.js with Express.js framework providing full API layer
+- **Database**: Supabase PostgreSQL with secure data access and real-time capabilities
 - **Data Access**: Express.js API endpoints connecting to Supabase for all database operations
-- **Authentication**: Replit Auth integration with OpenID Connect for admin panel, plus custom email/password authentication for CRM users
-- **Session Management**: Express sessions with PostgreSQL storage for Replit Auth, server-side authentication for CRM users
+- **Authentication**: Email/password authentication with bcrypt for CRM portal users only
 - **API Layer**: RESTful endpoints for all CRUD operations, lead management, and quote conversion workflows
+- **Access Control**: Server panel accessible through private development URL; CRM portal requires login
 
 ## Database Design
-The schema includes eight main entities:
-- **Sessions**: Required table for Replit Auth session storage (JSONB)
-- **Users**: Core user table (mandatory for Replit Auth) storing authenticated user profiles
+The schema includes seven main entities:
 - **Customers**: Organizations/companies that use the vehicle shipping services
-- **CustomerUsers**: Individual users belonging to customer organizations with role-based access
+- **CustomerUsers**: Individual users belonging to customer organizations with role-based access and bcrypt-hashed passwords
 - **Leads**: Vehicle shipping opportunities with auto-generated lead numbers and comprehensive tracking
 - **Quotes**: Generated quotes with pricing and terms from converted leads
 - **Orders**: Finalized orders with contract management and signature tracking
 - **Dispatch**: Active shipment dispatch records with carrier and driver information
 
-The database uses PostgreSQL-specific features like UUID generation, JSONB for session data, and proper foreign key relationships. Lead numbers follow L-YYYYMM-NNNN format with monthly sequence resets. All tables support vehicle shipping operations with fields like vehicle_type, transport_type, carrier fees, and broker fees.
+The database uses PostgreSQL-specific features like UUID generation and proper foreign key relationships. Lead numbers follow L-YYYYMM-NNNN format with monthly sequence resets. All tables support vehicle shipping operations with fields like vehicle_type, transport_type, carrier fees, and broker fees.
 
 ## Authentication & Authorization
-- **Provider**: Replit Auth using OpenID Connect protocol for secure authentication
-- **Session Storage**: Server-side sessions stored in PostgreSQL with configurable TTL
-- **Route Protection**: Middleware-based authentication checks on protected API endpoints
-- **User Context**: React hooks provide authentication state throughout the frontend application
+- **Server Panel**: No authentication required; protected by Replit's private development URL (accessible only to Repl owner)
+- **CRM Portal**: Email/password authentication with bcrypt password hashing
+- **Password Security**: All user passwords hashed using bcrypt with salt rounds of 12
+- **Multi-tenant Isolation**: Each customer organization has separate users with role-based access
 
 # External Dependencies
 
@@ -62,9 +64,8 @@ The database uses PostgreSQL-specific features like UUID generation, JSONB for s
 - **Supabase**: Managed PostgreSQL hosting with authentication, real-time features, and REST API
 - **Drizzle ORM**: TypeScript-first ORM providing type-safe database schema definitions
 
-## Authentication Services
-- **Replit Auth**: Complete authentication solution with OpenID Connect integration
-- **Passport.js**: Authentication middleware for handling OAuth flows
+## Security Libraries
+- **bcryptjs**: Password hashing library for secure CRM user authentication
 
 ## Frontend Libraries
 - **shadcn/ui**: Pre-built accessible UI components based on Radix UI primitives
