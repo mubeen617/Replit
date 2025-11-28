@@ -425,31 +425,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customer_id: customerId
       });
 
-      // Generate lead number
+      // Generate public_id (YYYYMMNNNN)
       const now = new Date();
-      const yearMonth = now.toISOString().slice(0, 7).replace('-', '');
+      const yearMonth = now.toISOString().slice(0, 7).replace('-', ''); // YYYYMM
 
       const { data: lastLead } = await supabaseAdmin
         .from('leads')
-        .select('lead_number')
-        .like('lead_number', `L-${yearMonth}%`)
-        .order('lead_number', { ascending: false })
+        .select('public_id')
+        .like('public_id', `${yearMonth}%`)
+        .order('public_id', { ascending: false })
         .limit(1);
 
       let nextNumber = 1;
       if (lastLead && lastLead.length > 0) {
-        const match = lastLead[0].lead_number.match(/L-\d{6}-(\d{4})/);
-        if (match) {
-          nextNumber = parseInt(match[1]) + 1;
+        const lastId = lastLead[0].public_id;
+        const lastSequence = parseInt(lastId.slice(6)); // Get NNNN part
+        if (!isNaN(lastSequence)) {
+          nextNumber = lastSequence + 1;
         }
       }
 
-      const leadNumber = `L-${yearMonth}-${nextNumber.toString().padStart(4, '0')}`;
+      const publicId = `${yearMonth}${nextNumber.toString().padStart(4, '0')}`;
 
       // Create lead in Supabase
       const { data: lead, error } = await supabaseAdmin
         .from('leads')
-        .insert({ ...leadData, lead_number: leadNumber })
+        .insert({ ...leadData, public_id: publicId })
         .select()
         .single();
 
@@ -490,10 +491,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { customerId, leadId } = req.params;
 
-      // Fetch the lead to get the lead_number
+      // Fetch the lead to get the public_id
       const { data: lead, error: leadError } = await supabaseAdmin
         .from('leads')
-        .select('lead_number')
+        .select('public_id')
         .eq('id', leadId)
         .eq('customer_id', customerId)
         .single();
@@ -527,7 +528,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .select('id')
           .single();
-
         if (createError) throw createError;
         userId = newUser.id;
       }
@@ -536,8 +536,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         lead_id: leadId,
         customer_id: customerId,
-        quote_number: lead.lead_number, // Use lead_number as quote_number
-        created_by_user_id: userId
+        public_id: lead.public_id, // Use public_id from lead
+        created_by_user_id: userId,
+        // Ensure optional fields are handled if not provided
+        pickup_person_name: req.body.pickup_person_name || null,
+        pickup_person_phone: req.body.pickup_person_phone || null,
+        pickup_address: req.body.pickup_address || null,
+        dropoff_person_name: req.body.dropoff_person_name || null,
+        dropoff_person_phone: req.body.dropoff_person_phone || null,
+        dropoff_address: req.body.dropoff_address || null,
       });
 
       // Create quote in Supabase
@@ -684,6 +691,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching quotes:", error);
       res.status(500).json({ message: "Failed to fetch quotes" });
+    }
+  });
+
+  app.post('/api/crm/quotes/:quoteId/send', async (req, res) => {
+    try {
+      const { quoteId } = req.params;
+
+      // Update quote status to sent
+      const { data: quote, error } = await supabaseAdmin
+        .from('quotes')
+        .update({ status: 'sent' })
+        .eq('id', quoteId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      res.json(quote);
+    } catch (error) {
+      console.error("Error sending quote:", error);
+      res.status(500).json({ message: "Failed to send quote" });
+    }
+  });
+
+  app.post('/api/crm/quotes/:quoteId/convert-to-order', async (req, res) => {
+    try {
+      const { quoteId } = req.params;
+
+      // Fetch the quote to get the public_id and details
+      const { data: quote, error: quoteError } = await supabaseAdmin
+        .from('quotes')
+        .select('*')
+        .eq('id', quoteId)
+        .single();
+
+      if (quoteError) throw quoteError;
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      // Check if order already exists
+      const { data: existingOrder } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .eq('quote_id', quoteId)
+        .single();
+
+      if (existingOrder) {
+        // Ensure quote status is accepted
+        await supabaseAdmin
+          .from('quotes')
+          .update({ status: 'accepted' })
+          .eq('id', quoteId);
+
+        return res.json(existingOrder);
+      }
+
+      // Create order with public_id from quote
+      const { data: order, error: orderError } = await supabaseAdmin
+        .from('orders')
+        .insert({
+          quote_id: quoteId,
+          lead_id: quote.lead_id,
+          customer_id: quote.customer_id,
+          public_id: quote.public_id, // Persist public_id
+          status: 'pending_signature'
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Update quote with pickup/dropoff details if provided
+      const updateData: any = { status: 'accepted' };
+
+      if (req.body.pickup_details) {
+        updateData.pickup_address = req.body.pickup_details.address;
+        updateData.pickup_zip = req.body.pickup_details.zip;
+        updateData.pickup_contacts = req.body.pickup_details.contacts;
+        // Map first contact to legacy fields for backward compatibility
+        if (req.body.pickup_details.contacts?.[0]) {
+          updateData.pickup_person_name = req.body.pickup_details.contacts[0].name;
+          updateData.pickup_person_phone = req.body.pickup_details.contacts[0].phone;
+        }
+      }
+
+      if (req.body.dropoff_details) {
+        updateData.dropoff_address = req.body.dropoff_details.address;
+        updateData.dropoff_zip = req.body.dropoff_details.zip;
+        updateData.dropoff_contacts = req.body.dropoff_details.contacts;
+        // Map first contact to legacy fields for backward compatibility
+        if (req.body.dropoff_details.contacts?.[0]) {
+          updateData.dropoff_person_name = req.body.dropoff_details.contacts[0].name;
+          updateData.dropoff_person_phone = req.body.dropoff_details.contacts[0].phone;
+        }
+      }
+
+      await supabaseAdmin
+        .from('quotes')
+        .update(updateData)
+        .eq('id', quoteId);
+
+      // Update lead status to order
+      await supabaseAdmin
+        .from('leads')
+        .update({ status: 'order' })
+        .eq('id', quote.lead_id);
+
+      res.status(201).json(order);
+    } catch (error: any) {
+      console.error("Error converting quote to order:", error);
+      res.status(500).json({
+        message: "Failed to convert quote to order",
+        details: error.message || JSON.stringify(error)
+      });
+    }
+  });
+
+  app.get('/api/crm/orders/:customerId', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      console.log(`Fetching orders for customer: ${customerId}`);
+      const { data: orders, error } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      console.log(`Found ${orders?.length} orders for customer ${customerId}`);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
     }
   });
 

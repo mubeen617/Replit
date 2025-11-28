@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
@@ -31,12 +30,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -44,9 +37,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Package,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import {
   Plus,
+  FileText,
   MoreHorizontal,
+  Search,
+  Filter,
   Download,
   ExternalLink,
   ArrowRight,
@@ -56,6 +58,7 @@ import {
   Calendar,
   DollarSign,
   Car,
+  Package,
 } from "lucide-react";
 import type { Customer, CustomerUser, Lead } from "@shared/schema";
 
@@ -311,17 +314,13 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
     if (!leadToConvert) return;
 
     const formData = new FormData(e.currentTarget);
-
     const quoteData = {
-      carrier_fees: formData.get("carrierFees") as string,
-      broker_fees: formData.get("brokerFees") as string,
-      total_tariff: formData.get("totalTariff") as string,
-      pickup_person_name: formData.get("pickupPersonName") as string,
-      pickup_person_phone: formData.get("pickupPersonPhone") as string,
-      pickup_address: formData.get("pickupAddress") as string,
-      dropoff_person_name: formData.get("dropoffPersonName") as string,
-      dropoff_person_phone: formData.get("dropoffPersonPhone") as string,
-      dropoff_address: formData.get("dropoffAddress") as string,
+      total_tariff: formData.get("totalTariff"),
+      carrier_fees: formData.get("carrierFees"),
+      broker_fees: formData.get("brokerFees"),
+      valid_until: formData.get("validUntil"),
+      pickup_details: null,
+      dropoff_details: null,
     };
 
     convertToQuoteMutation.mutate({ leadId: leadToConvert.id, quoteData });
@@ -329,12 +328,11 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case "lead": return "bg-blue-100 text-blue-800";
-      case "quote": return "bg-yellow-100 text-yellow-800";
-      case "order": return "bg-purple-100 text-purple-800";
-      case "dispatch": return "bg-orange-100 text-orange-800";
-      case "completed": return "bg-green-100 text-green-800";
-      case "cancelled": return "bg-red-100 text-red-800";
+      case "new": return "bg-blue-100 text-blue-800";
+      case "contacted": return "bg-yellow-100 text-yellow-800";
+      case "qualified": return "bg-green-100 text-green-800";
+      case "lost": return "bg-red-100 text-red-800";
+      case "converted": return "bg-purple-100 text-purple-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
@@ -344,356 +342,18 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Vehicle Shipping Leads</h1>
-          <p className="text-gray-600 mt-1">Manage and track your vehicle shipping opportunities</p>
+          <h1 className="text-3xl font-bold text-gray-900">Leads</h1>
+          <p className="text-gray-600 mt-1">Manage and track potential customers</p>
         </div>
         <div className="flex gap-2">
-          {userType === "customer" && (
-            <Dialog open={isApiDialogOpen} onOpenChange={setIsApiDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Fetch Leads
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Fetch Leads from API</DialogTitle>
-                  <DialogDescription>
-                    Connect to an external API to automatically import new vehicle shipping leads.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="endpoint">API Endpoint URL</Label>
-                    <Input
-                      id="endpoint"
-                      placeholder="https://api.vehicleshipping.com/leads"
-                      value={apiEndpoint}
-                      onChange={(e) => setApiEndpoint(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="apikey">API Key (Optional)</Label>
-                    <Input
-                      id="apikey"
-                      type="password"
-                      placeholder="Bearer token or API key"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsApiDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => fetchLeadsMutation.mutate({ endpoint: apiEndpoint, key: apiKey })}
-                    disabled={fetchLeadsMutation.isPending}
-                  >
-                    {fetchLeadsMutation.isPending && (
-                      <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
-                    )}
-                    Fetch Leads
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-
-          <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-add-lead">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Lead
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Vehicle Shipping Lead</DialogTitle>
-                <DialogDescription>
-                  Create a new vehicle shipping lead with customer and vehicle details.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddLead} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Lead Details */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900">Lead Information</h3>
-                    <div className="grid gap-3">
-
-                      <div>
-                        <Label htmlFor="contactName">Contact Name *</Label>
-                        <Input
-                          id="contactName"
-                          name="contactName"
-                          required
-                          data-testid="input-contact-name"
-                          placeholder="John Doe"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="contactEmail">Contact Email *</Label>
-                        <Input
-                          id="contactEmail"
-                          name="contactEmail"
-                          type="email"
-                          required
-                          data-testid="input-contact-email"
-                          placeholder="john@example.com"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="contactPhone">Contact Phone *</Label>
-                        <Input
-                          id="contactPhone"
-                          name="contactPhone"
-                          required
-                          data-testid="input-contact-phone"
-                          placeholder="(555) 123-4567"
-                        />
-                      </div>
-
-                      {userType === "customer" && (
-                        <div>
-                          <Label htmlFor="assignedUserId">Assign to Agent</Label>
-                          <Select name="assignedUserId">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select an agent" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(teamMembers as CustomerUser[]).map((member: CustomerUser) => (
-                                <SelectItem key={member.id} value={member.id}>
-                                  {member.first_name} {member.last_name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Vehicle & Route Details */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900">Vehicle & Route</h3>
-                    <div className="grid gap-3">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <Label htmlFor="vehicleYear">Year</Label>
-                          <Input
-                            id="vehicleYear"
-                            name="vehicleYear"
-                            placeholder="2020"
-                            data-testid="input-vehicle-year"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="vehicleMake">Make</Label>
-                          <Input
-                            id="vehicleMake"
-                            name="vehicleMake"
-                            placeholder="Toyota"
-                            data-testid="input-vehicle-make"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="vehicleModel">Model</Label>
-                          <Input
-                            id="vehicleModel"
-                            name="vehicleModel"
-                            placeholder="Camry"
-                            data-testid="input-vehicle-model"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label htmlFor="vehicleType">Vehicle Type</Label>
-                          <Select name="vehicleType">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="sedan">Sedan</SelectItem>
-                              <SelectItem value="suv">SUV</SelectItem>
-                              <SelectItem value="truck">Truck</SelectItem>
-                              <SelectItem value="motorcycle">Motorcycle</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="trailerType">Trailer Type</Label>
-                          <Select name="trailerType" defaultValue="open">
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="open">Open</SelectItem>
-                              <SelectItem value="closed">Enclosed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label htmlFor="condition">Condition</Label>
-                          <Select name="condition" defaultValue="run">
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="run">Running</SelectItem>
-                              <SelectItem value="inop">Inoperable</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="priority">Priority</Label>
-                          <Select name="priority" defaultValue="normal">
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="normal">Normal</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                              <SelectItem value="urgent">Urgent</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label htmlFor="originZipcode">Origin Zipcode</Label>
-                          <Input
-                            id="originZipcode"
-                            name="originZipcode"
-                            data-testid="input-origin-zipcode"
-                            placeholder="90210"
-                            onChange={(e) => handleZipcodeChange(e.target.value, 'origin')}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="origin">Origin *</Label>
-                          <Input
-                            id="origin"
-                            name="origin"
-                            required
-                            data-testid="input-origin"
-                            placeholder="Los Angeles, CA"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label htmlFor="destinationZipcode">Destination Zipcode</Label>
-                          <Input
-                            id="destinationZipcode"
-                            name="destinationZipcode"
-                            data-testid="input-destination-zipcode"
-                            placeholder="10001"
-                            onChange={(e) => handleZipcodeChange(e.target.value, 'destination')}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="destination">Destination *</Label>
-                          <Input
-                            id="destination"
-                            name="destination"
-                            required
-                            data-testid="input-destination"
-                            placeholder="New York, NY"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="pickupDate">Pickup Date *</Label>
-                        <Input
-                          id="pickupDate"
-                          name="pickupDate"
-                          type="date"
-                          required
-                          data-testid="input-pickup-date"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="deliveryDate">Delivery Date (Optional)</Label>
-                        <Input
-                          id="deliveryDate"
-                          name="deliveryDate"
-                          type="date"
-                          data-testid="input-delivery-date"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Financial Details */}
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-3">Financial Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="carrierFees">Carrier Fees ($)</Label>
-                      <Input
-                        id="carrierFees"
-                        name="carrierFees"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        data-testid="input-carrier-fees"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="brokerFees">Broker Fees ($)</Label>
-                      <Input
-                        id="brokerFees"
-                        name="brokerFees"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        data-testid="input-broker-fees"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    placeholder="Additional notes or special requirements..."
-                    data-testid="input-notes"
-                  />
-                </div>
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddLeadOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={addLeadMutation.isPending} data-testid="button-save-lead">
-                    {addLeadMutation.isPending && (
-                      <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
-                    )}
-                    Add Lead
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button variant="outline" onClick={() => setIsApiDialogOpen(true)}>
+            <Download className="h-4 w-4 mr-2" />
+            Import from API
+          </Button>
+          <Button onClick={() => setIsAddLeadOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Lead
+          </Button>
         </div>
       </div>
 
@@ -701,23 +361,21 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Package className="h-5 w-5" />
-            <span>Active Leads</span>
+            <FileText className="h-5 w-5" />
+            <span>Recent Leads</span>
           </CardTitle>
           <CardDescription>
-            {userType === "customer"
-              ? "Manage and distribute vehicle shipping leads to your team"
-              : "Your assigned vehicle shipping leads"}
+            A list of all leads in the system
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">Loading leads...</div>
-          ) : leads.filter(lead => lead.status !== 'converted').length === 0 ? (
+          ) : leads.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-xl font-medium mb-2">No leads available</h3>
-              <p className="mb-6">Start by adding your first vehicle shipping lead</p>
+              <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-xl font-medium mb-2">No leads found</h3>
+              <p className="mb-6">Get started by adding a new lead or importing from API</p>
               <Button onClick={() => setIsAddLeadOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add First Lead
@@ -728,62 +386,71 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Lead #</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>Lead Number</TableHead>
+                    <TableHead>Contact Info</TableHead>
+                    <TableHead>Route</TableHead>
                     <TableHead>Vehicle</TableHead>
-                    <TableHead>Transport</TableHead>
-                    <TableHead>Origin</TableHead>
-                    <TableHead>Destination</TableHead>
-                    <TableHead>Assigned User</TableHead>
+                    <TableHead>Tariff</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Ship Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leads.filter(lead => lead.status !== 'converted').map((lead) => (
+                  {leads.map((lead) => (
                     <TableRow key={lead.id}>
-                      <TableCell className="font-medium" data-testid={`text-lead-number-${lead.id}`}>
-                        {lead.lead_number}
+                      <TableCell className="font-medium">
+                        {lead.public_id || lead.id.substring(0, 8)}
                       </TableCell>
                       <TableCell>
-                        {new Date(lead.created_at || '').toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>{lead.contact_name}</TableCell>
-                      <TableCell>{lead.contact_phone}</TableCell>
-                      <TableCell>{lead.contact_email}</TableCell>
-                      <TableCell>
-                        {lead.vehicle_year} {lead.vehicle_make} {lead.vehicle_model}
-                      </TableCell>
-                      <TableCell>
-                        {lead.transport_type || lead.trailer_type}
-                      </TableCell>
-                      <TableCell>{lead.origin}</TableCell>
-                      <TableCell>{lead.destination}</TableCell>
-                      <TableCell>
-                        {lead.assigned_user_id ? (
-                          <Badge variant="outline">
-                            {teamMembers.find(m => m.id === lead.assigned_user_id)?.first_name || 'Assigned'}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400 italic">Unassigned</span>
-                        )}
+                        <div className="space-y-1">
+                          <div className="font-medium">{lead.contact_name}</div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-500">
+                            <Phone className="h-3 w-3" />
+                            <span>{lead.contact_phone}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-500">
+                            <Mail className="h-3 w-3" />
+                            <span>{lead.contact_email}</span>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusBadgeColor(lead.status || 'lead')}>
-                          {lead.status || 'lead'}
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="h-3 w-3 text-green-500" />
+                            <span>{lead.origin}</span>
+                          </div>
+                          <div className="pl-1 border-l-2 border-gray-200 ml-1.5 h-3"></div>
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="h-3 w-3 text-red-500" />
+                            <span>{lead.destination}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{lead.vehicle_year} {lead.vehicle_make} {lead.vehicle_model}</div>
+                          <div className="text-sm text-gray-500 capitalize">{lead.vehicle_type} • {lead.condition}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <DollarSign className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium text-lg">${lead.total_tariff}</span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Carrier: ${lead.carrier_fees} • Broker: ${lead.broker_fees}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusBadgeColor(lead.status || 'new')}>
+                          {lead.status || 'new'}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(lead.pickup_date).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" data-testid={`button-actions-${lead.id}`}>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -791,38 +458,30 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
                             <DropdownMenuItem onClick={() => setSelectedLead(lead)}>
                               View Details
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              setLeadToConvert(lead);
+                              setIsConvertToQuoteOpen(true);
+                            }}>
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                              Convert to Quote
+                            </DropdownMenuItem>
                             {userType === "customer" && (
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <Select
-                                  onValueChange={(userId) => {
-                                    assignUserMutation.mutate({ leadId: lead.id, userId });
-                                  }}
-                                  defaultValue={lead.assigned_user_id || undefined}
-                                >
-                                  <SelectTrigger className="h-8 w-full border-none shadow-none focus:ring-0">
-                                    <SelectValue placeholder="Assign User" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {teamMembers.map((member) => (
-                                      <SelectItem key={member.id} value={member.id}>
-                                        {member.first_name} {member.last_name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </DropdownMenuItem>
-                            )}
-                            {lead.status === 'lead' && (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setLeadToConvert(lead);
-                                  setIsConvertToQuoteOpen(true);
-                                }}
-                                data-testid={`action-convert-to-quote-${lead.id}`}
-                              >
-                                <ArrowRight className="h-4 w-4 mr-2" />
-                                Convert to Quote
-                              </DropdownMenuItem>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger className="w-full text-left px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm flex items-center">
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  Assign to User
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  {teamMembers.map((member) => (
+                                    <DropdownMenuItem
+                                      key={member.id}
+                                      onClick={() => assignUserMutation.mutate({ leadId: lead.id, userId: member.id })}
+                                    >
+                                      {member.username}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
                             <DropdownMenuItem className="text-red-600">
                               Delete Lead
@@ -839,13 +498,300 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
         </CardContent>
       </Card>
 
+      {/* Add Lead Dialog */}
+      <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Lead</DialogTitle>
+            <DialogDescription>
+              Enter lead details manually.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddLead} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Contact Details */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-gray-900">Contact Details</h3>
+                <div className="grid gap-3">
+                  <div>
+                    <Label htmlFor="contactName">Contact Name *</Label>
+                    <Input
+                      id="contactName"
+                      name="contactName"
+                      required
+                      data-testid="input-contact-name"
+                      placeholder="John Doe"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="contactEmail">Contact Email *</Label>
+                    <Input
+                      id="contactEmail"
+                      name="contactEmail"
+                      type="email"
+                      required
+                      data-testid="input-contact-email"
+                      placeholder="john@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="contactPhone">Contact Phone *</Label>
+                    <Input
+                      id="contactPhone"
+                      name="contactPhone"
+                      required
+                      data-testid="input-contact-phone"
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+
+                  {userType === "customer" && (
+                    <div>
+                      <Label htmlFor="assignedUserId">Assign to Agent</Label>
+                      <Select name="assignedUserId">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an agent" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(teamMembers as CustomerUser[]).map((member: CustomerUser) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.first_name} {member.last_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Vehicle & Route Details */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-gray-900">Vehicle & Route</h3>
+                <div className="grid gap-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label htmlFor="vehicleYear">Year</Label>
+                      <Input
+                        id="vehicleYear"
+                        name="vehicleYear"
+                        placeholder="2020"
+                        data-testid="input-vehicle-year"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="vehicleMake">Make</Label>
+                      <Input
+                        id="vehicleMake"
+                        name="vehicleMake"
+                        placeholder="Toyota"
+                        data-testid="input-vehicle-make"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="vehicleModel">Model</Label>
+                      <Input
+                        id="vehicleModel"
+                        name="vehicleModel"
+                        placeholder="Camry"
+                        data-testid="input-vehicle-model"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="vehicleType">Vehicle Type</Label>
+                      <Select name="vehicleType">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sedan">Sedan</SelectItem>
+                          <SelectItem value="suv">SUV</SelectItem>
+                          <SelectItem value="truck">Truck</SelectItem>
+                          <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="trailerType">Trailer Type</Label>
+                      <Select name="trailerType" defaultValue="open">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="open">Open</SelectItem>
+                          <SelectItem value="closed">Enclosed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="condition">Condition</Label>
+                      <Select name="condition" defaultValue="run">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="run">Running</SelectItem>
+                          <SelectItem value="inop">Inoperable</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="priority">Priority</Label>
+                      <Select name="priority" defaultValue="normal">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="normal">Normal</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="originZipcode">Origin Zipcode</Label>
+                      <Input
+                        id="originZipcode"
+                        name="originZipcode"
+                        data-testid="input-origin-zipcode"
+                        placeholder="90210"
+                        onChange={(e) => handleZipcodeChange(e.target.value, 'origin')}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="origin">Origin *</Label>
+                      <Input
+                        id="origin"
+                        name="origin"
+                        required
+                        data-testid="input-origin"
+                        placeholder="Los Angeles, CA"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="destinationZipcode">Destination Zipcode</Label>
+                      <Input
+                        id="destinationZipcode"
+                        name="destinationZipcode"
+                        data-testid="input-destination-zipcode"
+                        placeholder="10001"
+                        onChange={(e) => handleZipcodeChange(e.target.value, 'destination')}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="destination">Destination *</Label>
+                      <Input
+                        id="destination"
+                        name="destination"
+                        required
+                        data-testid="input-destination"
+                        placeholder="New York, NY"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pickupDate">Pickup Date *</Label>
+                    <Input
+                      id="pickupDate"
+                      name="pickupDate"
+                      type="date"
+                      required
+                      data-testid="input-pickup-date"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="deliveryDate">Delivery Date (Optional)</Label>
+                    <Input
+                      id="deliveryDate"
+                      name="deliveryDate"
+                      type="date"
+                      data-testid="input-delivery-date"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial Details */}
+            <div>
+              <h3 className="font-medium text-gray-900 mb-3">Financial Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="carrierFees">Carrier Fees ($)</Label>
+                  <Input
+                    id="carrierFees"
+                    name="carrierFees"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    data-testid="input-carrier-fees"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="brokerFees">Broker Fees ($)</Label>
+                  <Input
+                    id="brokerFees"
+                    name="brokerFees"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    data-testid="input-broker-fees"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                placeholder="Additional notes or special requirements..."
+                data-testid="input-notes"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddLeadOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={addLeadMutation.isPending} data-testid="button-save-lead">
+                {addLeadMutation.isPending && (
+                  <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                )}
+                Add Lead
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Convert to Quote Dialog */}
       <Dialog open={isConvertToQuoteOpen} onOpenChange={setIsConvertToQuoteOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Convert Lead to Quote</DialogTitle>
             <DialogDescription>
-              Fill in the quote details for lead {leadToConvert?.lead_number}
+              Fill in the quote details for lead {leadToConvert?.public_id}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleConvertToQuote} className="space-y-6">
@@ -883,68 +829,6 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
                 step="0.01"
                 required
                 placeholder="0.00"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pickupPersonName">Pickup Contact Name</Label>
-                <Input
-                  id="pickupPersonName"
-                  name="pickupPersonName"
-                  required
-                  placeholder="John Smith"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pickupPersonPhone">Pickup Contact Phone</Label>
-                <Input
-                  id="pickupPersonPhone"
-                  name="pickupPersonPhone"
-                  required
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="pickupAddress">Pickup Address</Label>
-              <Input
-                id="pickupAddress"
-                name="pickupAddress"
-                required
-                placeholder="123 Main St, City, State 12345"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dropoffPersonName">Dropoff Contact Name</Label>
-                <Input
-                  id="dropoffPersonName"
-                  name="dropoffPersonName"
-                  required
-                  placeholder="Jane Doe"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dropoffPersonPhone">Dropoff Contact Phone</Label>
-                <Input
-                  id="dropoffPersonPhone"
-                  name="dropoffPersonPhone"
-                  required
-                  placeholder="(555) 987-6543"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dropoffAddress">Dropoff Address</Label>
-              <Input
-                id="dropoffAddress"
-                name="dropoffAddress"
-                required
-                placeholder="456 Oak Ave, City, State 67890"
               />
             </div>
 

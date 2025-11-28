@@ -63,7 +63,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
   const [isDispatchDetailOpen, setIsDispatchDetailOpen] = useState(false);
   const [isEditCarrierOpen, setIsEditCarrierOpen] = useState(false);
 
-  const userId = userType === "customer" ? (user as Customer).id : (user as CustomerUser).customerId;
+  const userId = userType === "customer" ? (user as Customer).id : (user as CustomerUser).customer_id;
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: dispatches = [], isLoading } = useQuery<Dispatch[]>({
@@ -157,8 +157,8 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
 
     const formData = new FormData(e.currentTarget);
     const carrierData = {
-      carrierName: formData.get("carrierName") as string,
-      carrierPhone: formData.get("carrierPhone") as string,
+      carrier_name: formData.get("carrier_name") as string,
+      carrier_phone: formData.get("carrier_phone") as string,
       carrierEmail: formData.get("carrierEmail") as string,
       driverName: formData.get("driverName") as string,
       driverPhone: formData.get("driverPhone") as string,
@@ -221,21 +221,21 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                   {dispatches.map((dispatch) => (
                     <TableRow key={dispatch.id}>
                       <TableCell className="font-medium" data-testid={`text-dispatch-number-${dispatch.id}`}>
-                        {dispatch.dispatchNumber}
+                        {dispatch.public_id}
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-gray-500">
-                          {dispatch.orderId?.substring(0, 8)}...
+                          {dispatch.order_id?.substring(0, 8)}...
                         </span>
                       </TableCell>
                       <TableCell>
-                        {dispatch.carrierName ? (
+                        {dispatch.carrier_name ? (
                           <div className="space-y-1">
-                            <div className="font-medium">{dispatch.carrierName}</div>
-                            {dispatch.carrierPhone && (
+                            <div className="font-medium">{dispatch.carrier_name}</div>
+                            {dispatch.carrier_phone && (
                               <div className="flex items-center space-x-1 text-sm text-gray-500">
                                 <Phone className="h-3 w-3" />
-                                <span>{dispatch.carrierPhone}</span>
+                                <span>{dispatch.carrier_phone}</span>
                               </div>
                             )}
                           </div>
@@ -321,7 +321,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => {
                                 setSelectedDispatch(dispatch);
                                 setIsDispatchDetailOpen(true);
@@ -329,8 +329,8 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                             >
                               View Details
                             </DropdownMenuItem>
-                            
-                            <DropdownMenuItem 
+
+                            <DropdownMenuItem
                               onClick={() => {
                                 setSelectedDispatch(dispatch);
                                 setIsEditCarrierOpen(true);
@@ -339,33 +339,33 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                             >
                               Edit Carrier Info
                             </DropdownMenuItem>
-                            
+
                             {dispatch.status === 'assigned' && (
-                              <DropdownMenuItem 
-                                onClick={() => updateStatusMutation.mutate({ 
-                                  dispatchId: dispatch.id, 
-                                  status: 'in_transit' 
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({
+                                  dispatchId: dispatch.id,
+                                  status: 'in_transit'
                                 })}
                                 data-testid={`action-mark-in-transit-${dispatch.id}`}
                               >
                                 Mark In Transit
                               </DropdownMenuItem>
                             )}
-                            
+
                             {dispatch.status === 'in_transit' && (
-                              <DropdownMenuItem 
-                                onClick={() => updateStatusMutation.mutate({ 
-                                  dispatchId: dispatch.id, 
-                                  status: 'delivered' 
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({
+                                  dispatchId: dispatch.id,
+                                  status: 'delivered'
                                 })}
                                 data-testid={`action-mark-delivered-${dispatch.id}`}
                               >
                                 Mark Delivered
                               </DropdownMenuItem>
                             )}
-                            
+
                             {dispatch.status === 'delivered' && (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => markCompletedMutation.mutate(dispatch.id)}
                                 data-testid={`action-mark-completed-${dispatch.id}`}
                               >
@@ -373,7 +373,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                                 Mark Completed
                               </DropdownMenuItem>
                             )}
-                            
+
                             <DropdownMenuItem>
                               Update Pickup Date
                             </DropdownMenuItem>
@@ -401,7 +401,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
               Complete dispatch information and tracking details
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedDispatch && (
             <div className="space-y-6">
               {/* Dispatch Summary */}
@@ -413,11 +413,11 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                   <CardContent className="space-y-3">
                     <div>
                       <Label>Dispatch Number</Label>
-                      <p className="font-medium">{selectedDispatch.dispatchNumber}</p>
+                      <p className="font-medium">{selectedDispatch.public_id}</p>
                     </div>
                     <div>
                       <Label>Order ID</Label>
-                      <p className="font-medium">{selectedDispatch.orderId}</p>
+                      <p className="font-medium">{selectedDispatch.order_id}</p>
                     </div>
                     <div>
                       <Label>Status</Label>
@@ -467,11 +467,11 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                   <CardContent className="space-y-3">
                     <div>
                       <Label>Carrier Name</Label>
-                      <p className="font-medium">{selectedDispatch.carrierName || 'Not assigned'}</p>
+                      <p className="font-medium">{selectedDispatch.carrier_name || 'Not assigned'}</p>
                     </div>
                     <div>
                       <Label>Carrier Phone</Label>
-                      <p className="font-medium">{selectedDispatch.carrierPhone || 'Not provided'}</p>
+                      <p className="font-medium">{selectedDispatch.carrier_phone || 'Not provided'}</p>
                     </div>
                     <div>
                       <Label>Carrier Email</Label>
@@ -519,7 +519,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                         </div>
                       </div>
                     )}
-                    
+
                     {selectedDispatch.actualPickupDate && (
                       <div className="flex items-center space-x-3">
                         <CheckCircle className="h-4 w-4 text-green-500" />
@@ -531,7 +531,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                         </div>
                       </div>
                     )}
-                    
+
                     {selectedDispatch.deliveryDate && (
                       <div className="flex items-center space-x-3">
                         <Calendar className="h-4 w-4 text-orange-500" />
@@ -543,7 +543,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                         </div>
                       </div>
                     )}
-                    
+
                     {selectedDispatch.actualDeliveryDate && (
                       <div className="flex items-center space-x-3">
                         <CheckCircle className="h-4 w-4 text-green-500" />
@@ -596,25 +596,25 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
               Update carrier and driver details for this dispatch
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedDispatch && (
             <form onSubmit={handleUpdateCarrier} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="carrierName">Carrier Name</Label>
+                  <Label htmlFor="carrier_name">Carrier Name</Label>
                   <Input
-                    id="carrierName"
-                    name="carrierName"
-                    defaultValue={selectedDispatch.carrierName || ''}
+                    id="carrier_name"
+                    name="carrier_name"
+                    defaultValue={selectedDispatch.carrier_name || ''}
                     placeholder="ABC Transport"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="carrierPhone">Carrier Phone</Label>
+                  <Label htmlFor="carrier_phone">Carrier Phone</Label>
                   <Input
-                    id="carrierPhone"
-                    name="carrierPhone"
-                    defaultValue={selectedDispatch.carrierPhone || ''}
+                    id="carrier_phone"
+                    name="carrier_phone"
+                    defaultValue={selectedDispatch.carrier_phone || ''}
                     placeholder="(555) 123-4567"
                   />
                 </div>
@@ -656,7 +656,7 @@ export default function CRMDispatch({ user, userType }: CRMDispatchProps) {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea

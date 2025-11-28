@@ -108,7 +108,7 @@ export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
   assigned_user_id: varchar("assigned_user_id").references(() => customerUsers.id, { onDelete: "set null" }),
-  lead_number: varchar("lead_number").notNull().unique(),
+  public_id: varchar("public_id", { length: 255 }).notNull().unique(),
 
   // Contact Details
   contact_name: varchar("contact_name").notNull(),
@@ -157,7 +157,7 @@ export const quotes = pgTable("quotes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   lead_id: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
   customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
-  quote_number: varchar("quote_number").notNull().unique(),
+  public_id: varchar("public_id", { length: 255 }).notNull().unique(),
   created_by_user_id: varchar("created_by_user_id").references(() => customerUsers.id, { onDelete: "set null" }),
   // Tariff Details
   carrier_fees: varchar("carrier_fees").notNull(),
@@ -165,14 +165,18 @@ export const quotes = pgTable("quotes", {
   total_tariff: varchar("total_tariff").notNull(),
 
   // Pickup Details
-  pickup_person_name: varchar("pickup_person_name").notNull(),
-  pickup_person_phone: varchar("pickup_person_phone").notNull(),
-  pickup_address: text("pickup_address").notNull(),
+  pickup_person_name: varchar("pickup_person_name"),
+  pickup_person_phone: varchar("pickup_person_phone"),
+  pickup_address: text("pickup_address"),
+  pickup_zip: varchar("pickup_zip"),
+  pickup_contacts: jsonb("pickup_contacts"), // Array of { name, phone }
 
   // Drop-off Details
-  dropoff_person_name: varchar("dropoff_person_name").notNull(),
-  dropoff_person_phone: varchar("dropoff_person_phone").notNull(),
-  dropoff_address: text("dropoff_address").notNull(),
+  dropoff_person_name: varchar("dropoff_person_name"),
+  dropoff_person_phone: varchar("dropoff_person_phone"),
+  dropoff_address: text("dropoff_address"),
+  dropoff_zip: varchar("dropoff_zip"),
+  dropoff_contacts: jsonb("dropoff_contacts"), // Array of { name, phone }
 
   // Payment Details (optional)
   card_details: text("card_details"), // Encrypted card details
@@ -194,7 +198,7 @@ export const orders = pgTable("orders", {
   lead_id: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
   customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
 
-  order_number: varchar("order_number").notNull().unique(),
+  public_id: varchar("public_id", { length: 255 }).notNull().unique(),
 
   // Contract Details
   contract_type: varchar("contract_type").default("standard").notNull(), // standard, with_cc, without_cc
@@ -219,7 +223,7 @@ export const dispatch = pgTable("dispatch", {
   lead_id: varchar("lead_id").references(() => leads.id, { onDelete: "cascade" }).notNull(),
   customer_id: varchar("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
 
-  dispatch_number: varchar("dispatch_number").notNull().unique(),
+  public_id: varchar("public_id", { length: 255 }).notNull().unique(),
 
   // Carrier Details
   carrier_name: varchar("carrier_name"),
@@ -306,7 +310,7 @@ export const dispatchRelations = relations(dispatch, ({ one }) => ({
 // Schema validations
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
-  lead_number: true, // Auto-generated
+  public_id: true, // Auto-generated
   created_at: true,
   updated_at: true,
 }).extend({

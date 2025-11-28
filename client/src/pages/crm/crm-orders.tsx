@@ -59,16 +59,23 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
 
-  const userId = userType === "customer" ? (user as Customer).id : (user as CustomerUser).customerId;
+  const userId = userType === "customer" ? (user as Customer).id : (user as CustomerUser).customer_id;
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ["/api/crm/orders", userId],
+    queryFn: async () => {
+      const response = await fetch(`/api/crm/orders/${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch orders');
+      }
+      return response.json();
+    }
   });
 
   const sendContractMutation = useMutation({
-    mutationFn: async ({ orderId, contractType }: { orderId: string; contractType: string }) => {
-      return await apiRequest("POST", `/api/crm/orders/${orderId}/send-contract`, { contractType });
+    mutationFn: async ({ orderId, contract_type }: { orderId: string; contract_type: string }) => {
+      return await apiRequest("POST", `/api/crm/orders/${orderId}/send-contract`, { contract_type });
     },
     onSuccess: () => {
       toast({
@@ -182,7 +189,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order #</TableHead>
+                    <TableHead>Order ID</TableHead>
                     <TableHead>Quote ID</TableHead>
                     <TableHead>Contract Type</TableHead>
                     <TableHead>Contract Status</TableHead>
@@ -194,46 +201,46 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                 <TableBody>
                   {orders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium" data-testid={`text-order-number-${order.id}`}>
-                        {order.orderNumber}
+                      <TableCell className="font-medium" data-testid={`text-order-number-${order.public_id}`}>
+                        {order.public_id}
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-gray-500">
-                          {order.quoteId?.substring(0, 8)}...
+                          {order.quote_id?.substring(0, 8)}...
                         </span>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
-                          {order.contractType?.replace('_', ' ') || 'standard'}
+                          {order.contract_type?.replace('_', ' ') || 'standard'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          {order.contractSent ? (
+                          {order.contract_sent ? (
                             <CheckCircle className="h-4 w-4 text-green-500" />
                           ) : (
                             <Clock className="h-4 w-4 text-gray-400" />
                           )}
                           <span className="text-sm">
-                            {order.contractSent ? 'Sent' : 'Not sent'}
+                            {order.contract_sent ? 'Sent' : 'Not sent'}
                           </span>
                         </div>
-                        {order.contractSentAt && (
+                        {order.contract_sent_at && (
                           <div className="text-xs text-gray-500">
-                            {new Date(order.contractSentAt).toLocaleDateString()}
+                            {new Date(order.contract_sent_at).toLocaleDateString()}
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
-                        {order.contractSigned ? (
+                        {order.contract_signed ? (
                           <div className="space-y-1">
                             <div className="flex items-center space-x-2 text-green-600">
                               <Signature className="h-4 w-4" />
                               <span className="text-sm font-medium">Signed</span>
                             </div>
-                            {order.contractSignedAt && (
+                            {order.contract_signed_at && (
                               <div className="text-xs text-gray-500">
-                                {new Date(order.contractSignedAt).toLocaleDateString()}
+                                {new Date(order.contract_signed_at).toLocaleDateString()}
                               </div>
                             )}
                           </div>
@@ -260,7 +267,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => {
                                 setSelectedOrder(order);
                                 setIsOrderDetailOpen(true);
@@ -268,23 +275,23 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                             >
                               View Details
                             </DropdownMenuItem>
-                            
-                            {!order.contractSent && (
+
+                            {!order.contract_sent && (
                               <>
-                                <DropdownMenuItem 
-                                  onClick={() => sendContractMutation.mutate({ 
-                                    orderId: order.id, 
-                                    contractType: 'standard' 
+                                <DropdownMenuItem
+                                  onClick={() => sendContractMutation.mutate({
+                                    orderId: order.id,
+                                    contract_type: 'standard'
                                   })}
                                   data-testid={`action-send-contract-${order.id}`}
                                 >
                                   <Send className="h-4 w-4 mr-2" />
                                   Send Contract
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => sendContractMutation.mutate({ 
-                                    orderId: order.id, 
-                                    contractType: 'with_cc' 
+                                <DropdownMenuItem
+                                  onClick={() => sendContractMutation.mutate({
+                                    orderId: order.id,
+                                    contract_type: 'with_cc'
                                   })}
                                 >
                                   <Send className="h-4 w-4 mr-2" />
@@ -292,9 +299,9 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                                 </DropdownMenuItem>
                               </>
                             )}
-                            
-                            {order.contractSent && !order.contractSigned && (
-                              <DropdownMenuItem 
+
+                            {order.contract_sent && !order.contract_signed && (
+                              <DropdownMenuItem
                                 onClick={() => markSignedMutation.mutate(order.id)}
                                 data-testid={`action-mark-signed-${order.id}`}
                               >
@@ -302,9 +309,9 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                                 Mark as Signed
                               </DropdownMenuItem>
                             )}
-                            
-                            {order.contractSigned && order.status === 'signed' && (
-                              <DropdownMenuItem 
+
+                            {order.contract_signed && order.status === 'signed' && (
+                              <DropdownMenuItem
                                 onClick={() => convertToDispatchMutation.mutate(order.id)}
                                 data-testid={`action-convert-to-dispatch-${order.id}`}
                               >
@@ -312,14 +319,14 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                                 Move to Dispatch
                               </DropdownMenuItem>
                             )}
-                            
-                            {order.contractSigned && (
+
+                            {order.contract_signed && (
                               <DropdownMenuItem>
                                 <Download className="h-4 w-4 mr-2" />
                                 Download Contract
                               </DropdownMenuItem>
                             )}
-                            
+
                             <DropdownMenuItem>
                               Create Change Order
                             </DropdownMenuItem>
@@ -347,7 +354,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
               Complete order information and contract status
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedOrder && (
             <div className="space-y-6">
               {/* Order Summary */}
@@ -359,11 +366,11 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                   <CardContent className="space-y-3">
                     <div>
                       <Label>Order Number</Label>
-                      <p className="font-medium">{selectedOrder.orderNumber}</p>
+                      <p className="font-medium">{selectedOrder.public_id}</p>
                     </div>
                     <div>
                       <Label>Quote ID</Label>
-                      <p className="font-medium">{selectedOrder.quoteId}</p>
+                      <p className="font-medium">{selectedOrder.quote_id}</p>
                     </div>
                     <div>
                       <Label>Status</Label>
@@ -376,7 +383,7 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                     <div>
                       <Label>Created Date</Label>
                       <p className="font-medium">
-                        {selectedOrder.createdAt && new Date(selectedOrder.createdAt).toLocaleDateString()}
+                        {selectedOrder.created_at && new Date(selectedOrder.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </CardContent>
@@ -390,38 +397,38 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                     <div>
                       <Label>Contract Type</Label>
                       <p className="font-medium capitalize">
-                        {selectedOrder.contractType?.replace('_', ' ') || 'standard'}
+                        {selectedOrder.contract_type?.replace('_', ' ') || 'standard'}
                       </p>
                     </div>
                     <div>
                       <Label>Contract Sent</Label>
                       <div className="flex items-center space-x-2 mt-1">
-                        {selectedOrder.contractSent ? (
+                        {selectedOrder.contract_sent ? (
                           <CheckCircle className="h-4 w-4 text-green-500" />
                         ) : (
                           <Clock className="h-4 w-4 text-gray-400" />
                         )}
-                        <span>{selectedOrder.contractSent ? 'Yes' : 'No'}</span>
+                        <span>{selectedOrder.contract_sent ? 'Yes' : 'No'}</span>
                       </div>
-                      {selectedOrder.contractSentAt && (
+                      {selectedOrder.contract_sent_at && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Sent on {new Date(selectedOrder.contractSentAt).toLocaleDateString()}
+                          Sent on {new Date(selectedOrder.contract_sent_at).toLocaleDateString()}
                         </p>
                       )}
                     </div>
                     <div>
                       <Label>Contract Signed</Label>
                       <div className="flex items-center space-x-2 mt-1">
-                        {selectedOrder.contractSigned ? (
+                        {selectedOrder.contract_signed ? (
                           <Signature className="h-4 w-4 text-green-500" />
                         ) : (
                           <Clock className="h-4 w-4 text-gray-400" />
                         )}
-                        <span>{selectedOrder.contractSigned ? 'Yes' : 'No'}</span>
+                        <span>{selectedOrder.contract_signed ? 'Yes' : 'No'}</span>
                       </div>
-                      {selectedOrder.contractSignedAt && (
+                      {selectedOrder.contract_signed_at && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Signed on {new Date(selectedOrder.contractSignedAt).toLocaleDateString()}
+                          Signed on {new Date(selectedOrder.contract_signed_at).toLocaleDateString()}
                         </p>
                       )}
                     </div>
@@ -430,16 +437,16 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
               </div>
 
               {/* Change Orders */}
-              {selectedOrder.changeOrders && (
+              {selectedOrder.change_orders && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Change Order History</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-gray-500">
-                      {Array.isArray(selectedOrder.changeOrders) && selectedOrder.changeOrders.length > 0 ? (
+                      {Array.isArray(selectedOrder.change_orders) && selectedOrder.change_orders.length > 0 ? (
                         <div className="space-y-2">
-                          {(selectedOrder.changeOrders as any[]).map((change: any, index: number) => (
+                          {(selectedOrder.change_orders as any[]).map((change: any, index: number) => (
                             <div key={index} className="p-3 bg-gray-50 rounded-lg">
                               <p className="font-medium">{change.description}</p>
                               <p className="text-xs text-gray-400">{change.date}</p>
@@ -460,16 +467,16 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
             <Button variant="outline" onClick={() => setIsOrderDetailOpen(false)}>
               Close
             </Button>
-            {selectedOrder && !selectedOrder.contractSent && (
-              <Button onClick={() => sendContractMutation.mutate({ 
-                orderId: selectedOrder.id, 
-                contractType: 'standard' 
+            {selectedOrder && !selectedOrder.contract_sent && (
+              <Button onClick={() => sendContractMutation.mutate({
+                orderId: selectedOrder.id,
+                contract_type: 'standard'
               })}>
                 <Send className="h-4 w-4 mr-2" />
                 Send Contract
               </Button>
             )}
-            {selectedOrder?.contractSigned && selectedOrder.status === 'signed' && (
+            {selectedOrder?.contract_signed && selectedOrder.status === 'signed' && (
               <Button onClick={() => selectedOrder && convertToDispatchMutation.mutate(selectedOrder.id)}>
                 <ArrowRight className="h-4 w-4 mr-2" />
                 Move to Dispatch
