@@ -4,6 +4,9 @@ import { supabaseAdmin } from "./supabase";
 import { insertCustomerSchema, insertCustomerUserSchema, insertLeadSchema, insertQuoteSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stats endpoint
@@ -135,6 +138,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error updating customer:", error);
       res.status(500).json({ message: "Failed to update customer" });
     }
+  });
+
+  // File upload configuration
+  const storage = multer.diskStorage({
+    destination: function (req: any, file: any, cb: any) {
+      const uploadDir = 'uploads';
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir);
+      }
+      cb(null, uploadDir);
+    },
+    filename: function (req: any, file: any, cb: any) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + '-' + file.originalname);
+    }
+  });
+
+  const upload = multer({ storage: storage });
+
+  app.post('/api/upload', upload.single('file'), (req: any, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
   });
 
   app.delete('/api/customers/:id', async (req, res) => {

@@ -45,6 +45,14 @@ export const customers = pgTable("customers", {
   admin_name: varchar("admin_name").notNull(),
   admin_email: varchar("admin_email").notNull(),
   admin_password: varchar("admin_password").notNull(), // Hashed password for CRM portal login
+  mc_number: varchar("mc_number"),
+  dot_number: varchar("dot_number"),
+  logo_url: varchar("logo_url"),
+  address: text("address"),
+  city: varchar("city"),
+  state: varchar("state"),
+  zip: varchar("zip"),
+  country: varchar("country").default("USA"),
   status: varchar("status").notNull().default("active"), // active, inactive, suspended, pending
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
@@ -85,6 +93,14 @@ export const insertCustomerSchema = createInsertSchema(customers).pick({
   admin_name: true,
   admin_email: true,
   status: true,
+  mc_number: true,
+  dot_number: true,
+  logo_url: true,
+  address: true,
+  city: true,
+  state: true,
+  zip: true,
+  country: true,
 }).extend({
   admin_password: z.string().min(8, "Password must be at least 8 characters"),
 });

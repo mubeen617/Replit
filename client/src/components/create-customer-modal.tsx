@@ -43,6 +43,8 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
     },
   });
 
+  const [uploading, setUploading] = useState(false);
+
   const createMutation = useMutation({
     mutationFn: async (data: InsertCustomer) => {
       await apiRequest("POST", "/api/customers", data);
@@ -70,6 +72,39 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
     createMutation.mutate(data);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploading(true);
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      const data = await res.json();
+      form.setValue('logo_url', data.url);
+      toast({
+        title: "Success",
+        description: "Logo uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload logo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -84,7 +119,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
             {/* Organization Details */}
             <div className="space-y-4">
               <h4 className="text-md font-medium text-secondary-900">Organization Details</h4>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -99,7 +134,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="domain"
@@ -114,12 +149,133 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
                   )}
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="mc_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>MC Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="MC#" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="dot_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>DOT Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="DOT#" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <FormItem>
+                  <FormLabel>Company Logo</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                      />
+                      {form.watch('logo_url') && (
+                        <div className="h-10 w-10 relative rounded overflow-hidden border">
+                          <img
+                            src={form.watch('logo_url') || ''}
+                            alt="Logo"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </div>
+            </div>
+
+            {/* Address Details */}
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-secondary-900">Address Details</h4>
+
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Street Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Main St" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input placeholder="City" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State</FormLabel>
+                      <FormControl>
+                        <Input placeholder="State" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="zip"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zip Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Zip" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             {/* Admin Contact */}
             <div className="space-y-4">
               <h4 className="text-md font-medium text-secondary-900">Admin Contact</h4>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -134,7 +290,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="admin_email"
@@ -149,7 +305,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
                   )}
                 />
               </div>
-              
+
               <div className="grid grid-cols-1 gap-4">
                 <FormField
                   control={form.control}
@@ -158,10 +314,10 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="Enter secure password (min 8 characters)" 
-                          {...field} 
+                        <Input
+                          type="password"
+                          placeholder="Enter secure password (min 8 characters)"
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -182,7 +338,7 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
               </Button>
               <Button
                 type="submit"
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || uploading}
                 className="bg-primary-600 hover:bg-primary-700"
               >
                 {createMutation.isPending ? "Creating..." : "Create Customer"}
