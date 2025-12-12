@@ -121,6 +121,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/customers/:id', async (req, res) => {
     try {
       const customerData = insertCustomerSchema.partial().parse(req.body);
+
+      // If password is being updated, hash it
+      if (customerData.admin_password) {
+        customerData.admin_password = await bcrypt.hash(customerData.admin_password, 12);
+      }
+
       // Update customer in Supabase
       const { data: customer, error } = await supabaseAdmin
         .from('customers')
@@ -239,6 +245,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/customers/:customerId/users/:id', async (req, res) => {
     try {
       const userData = insertCustomerUserSchema.partial().parse(req.body);
+
+      // If password is being updated, hash it
+      if (userData.password) {
+        userData.password = await bcrypt.hash(userData.password, 12);
+      }
+
       // Update customer user in Supabase
       const { data: user, error } = await supabaseAdmin
         .from('customer_users')
@@ -711,6 +723,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from('quotes')
         .select('*')
         .eq('customer_id', customerId)
+        .neq('status', 'accepted') // Hide accepted quotes
+        .neq('status', 'rejected') // Hide rejected quotes
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -779,7 +793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(existingOrder);
       }
 
-      // Create order with public_id from quote
+      // Create order with public_id from quote and copy all relevant details
       const { data: order, error: orderError } = await supabaseAdmin
         .from('orders')
         .insert({
@@ -787,7 +801,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lead_id: quote.lead_id,
           customer_id: quote.customer_id,
           public_id: quote.public_id, // Persist public_id
-          status: 'pending_signature'
+          status: 'pending_signature',
+          // Copy tariff details
+          // Note: If orders table doesn't have these fields, we rely on the relation to quotes.
+          // However, to "snapshot" the deal, we should ideally have them on the order.
+          // Since the schema for orders doesn't have tariff fields, we are assuming the frontend
+          // should fetch them from the linked quote.
+          // But if the user says "incomplete", maybe they mean pickup/dropoff details?
+          // Let's ensure we update the quote with any new details provided during conversion FIRST
+          // so the linked quote has the latest info.
         })
         .select()
         .single();
@@ -819,6 +841,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Also copy carrier/broker fees if provided in the conversion request (final negotiation)
+      if (req.body.carrier_fees) updateData.carrier_fees = req.body.carrier_fees;
+      if (req.body.broker_fees) updateData.broker_fees = req.body.broker_fees;
+      if (req.body.total_tariff) updateData.total_tariff = req.body.total_tariff;
+
       await supabaseAdmin
         .from('quotes')
         .update(updateData)
@@ -846,7 +873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching orders for customer: ${customerId}`);
       const { data: orders, error } = await supabaseAdmin
         .from('orders')
-        .select('*')
+        .select('*, quotes(*), leads(*)')
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false });
 

@@ -436,6 +436,90 @@ export default function CRMOrders({ user, userType }: CRMOrdersProps) {
                 </Card>
               </div>
 
+              {/* Vehicle & Route Information (from Lead/Quote) */}
+              {(selectedOrder as any).leads && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Vehicle Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <Label>Vehicle</Label>
+                        <p className="font-medium">
+                          {(selectedOrder as any).leads.vehicle_year} {(selectedOrder as any).leads.vehicle_make} {(selectedOrder as any).leads.vehicle_model}
+                        </p>
+                      </div>
+                      <div>
+                        <Label>Type</Label>
+                        <p className="font-medium capitalize">{(selectedOrder as any).leads.vehicle_type || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label>Condition</Label>
+                        <p className="font-medium capitalize">{(selectedOrder as any).leads.condition || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label>Transport Type</Label>
+                        <p className="font-medium capitalize">{(selectedOrder as any).leads.transport_type || 'Open'}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Route Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <Label>Origin</Label>
+                        <p className="font-medium">{(selectedOrder as any).leads.origin}</p>
+                        {(selectedOrder as any).leads.origin_zipcode && (
+                          <p className="text-sm text-gray-500">{(selectedOrder as any).leads.origin_zipcode}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label>Destination</Label>
+                        <p className="font-medium">{(selectedOrder as any).leads.destination}</p>
+                        {(selectedOrder as any).leads.destination_zipcode && (
+                          <p className="text-sm text-gray-500">{(selectedOrder as any).leads.destination_zipcode}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label>Pickup Date</Label>
+                        <p className="font-medium">
+                          {(selectedOrder as any).leads.pickup_date && new Date((selectedOrder as any).leads.pickup_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Financial Information (from Quote) */}
+              {(selectedOrder as any).quotes && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Financial Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <Label>Carrier Fee</Label>
+                        <p className="font-medium text-lg">${(selectedOrder as any).quotes.carrier_fees}</p>
+                      </div>
+                      <div>
+                        <Label>Broker Fee</Label>
+                        <p className="font-medium text-lg text-green-600">${(selectedOrder as any).quotes.broker_fees}</p>
+                      </div>
+                      <div>
+                        <Label>Total Tariff</Label>
+                        <p className="font-bold text-xl">${(selectedOrder as any).quotes.total_tariff}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Change Orders */}
               {selectedOrder.change_orders && (
                 <Card>

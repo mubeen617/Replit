@@ -150,8 +150,8 @@ export default function CRMLayout({ user, userType, onLogout, children }: CRMLay
             <Link key={item.name} href={item.href}>
               <div
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors cursor-pointer group ${isActive
-                    ? "bg-primary-50 text-primary-700 border-r-2 border-primary-500"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  ? "bg-primary-50 text-primary-700 border-r-2 border-primary-500"
+                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 onClick={() => mobile && setSidebarOpen(false)}
               >
@@ -185,10 +185,12 @@ export default function CRMLayout({ user, userType, onLogout, children }: CRMLay
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </DropdownMenuItem>
+            <Link href="/crm/settings">
+              <DropdownMenuItem className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+            </Link>
             <DropdownMenuItem onClick={onLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout

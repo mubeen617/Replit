@@ -8,6 +8,8 @@ import CRMQuotes from "./crm/crm-quotes";
 import CRMOrders from "./crm/crm-orders";
 import CRMDispatch from "./crm/crm-dispatch";
 import CRMTeam from "./crm/crm-team";
+import AdminSettings from "./crm/settings/admin-settings";
+import UserSettings from "./crm/settings/user-settings";
 import type { Customer, CustomerUser } from "@shared/schema";
 
 interface CRMUser {
@@ -74,6 +76,18 @@ export default function CRMPortal() {
             </div>
           )} />
         )}
+
+        {/* Settings Routes */}
+        <Route path="/crm/settings" component={() => (
+          <div className="p-6 max-w-4xl mx-auto">
+            {currentUser.type === "customer" ? (
+              <AdminSettings customer={currentUser.data as Customer} />
+            ) : (
+              <UserSettings user={currentUser.data as CustomerUser} />
+            )}
+          </div>
+        )} />
+
         {/* Default redirect to dashboard */}
         <Route component={() => (
           <CRMDashboard user={currentUser.data} userType={currentUser.type} />
