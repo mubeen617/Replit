@@ -24,7 +24,7 @@ interface CRMDashboardProps {
 }
 
 export default function CRMDashboard({ user, userType }: CRMDashboardProps) {
-  const userId = userType === "customer" ? (user as Customer).id : (user as CustomerUser).customerId;
+  const userId = userType === "customer" ? (user as Customer).id : (user as CustomerUser).customer_id;
   const agentId = userType === "user" ? (user as CustomerUser).id : null;
 
   const { data: stats } = useQuery<{
@@ -54,10 +54,10 @@ export default function CRMDashboard({ user, userType }: CRMDashboardProps) {
 
   const getDisplayName = () => {
     if (userType === "customer") {
-      return (user as Customer).adminName || "Manager";
+      return (user as Customer).admin_name || "Manager";
     } else {
       const customerUser = user as CustomerUser;
-      return customerUser.firstName;
+      return customerUser.first_name;
     }
   };
 

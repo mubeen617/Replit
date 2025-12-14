@@ -24,21 +24,21 @@ export interface IStorage {
   // User operations (IMPORTANT: mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  
+
   // Customer operations
   getCustomers(search?: string, offset?: number, limit?: number): Promise<{ customers: Customer[], total: number }>;
   getCustomerById(id: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, customer: Partial<InsertCustomer>): Promise<Customer>;
   deleteCustomer(id: string): Promise<void>;
-  
+
   // Customer user operations
   getCustomerUsers(customerId: string, search?: string): Promise<CustomerUser[]>;
   getCustomerUserById(id: string): Promise<CustomerUser | undefined>;
   createCustomerUser(user: InsertCustomerUser): Promise<CustomerUser>;
   updateCustomerUser(id: string, user: Partial<InsertCustomerUser>): Promise<CustomerUser>;
   deleteCustomerUser(id: string): Promise<void>;
-  
+
   // Stats
   getStats(): Promise<{
     totalCustomers: number;
@@ -46,11 +46,11 @@ export interface IStorage {
     pendingUsers: number;
     issues: number;
   }>;
-  
+
   // Authentication helpers for CRM portal
   verifyCustomerPassword(email: string, password: string): Promise<Customer | null>;
   verifyUserPassword(email: string, password: string): Promise<CustomerUser | null>;
-  
+
   // Lead operations
   getLeads(customerId: string, assignedUserId?: string): Promise<Lead[]>;
   getLeadById(id: string, customerId: string): Promise<Lead | undefined>;
@@ -59,7 +59,7 @@ export interface IStorage {
   deleteLead(id: string, customerId: string): Promise<void>;
   assignLead(leadId: string, customerId: string, userId: string): Promise<Lead>;
   fetchLeadsFromAPI(customerId: string, apiEndpoint: string, apiKey?: string): Promise<Lead[]>;
-  
+
   // Quote operations
   getQuotes(customerId: string): Promise<Quote[]>;
   getQuoteById(id: string, customerId: string): Promise<Quote | undefined>;
@@ -84,7 +84,7 @@ export class DatabaseStorage implements IStorage {
         target: users.id,
         set: {
           ...userData,
-          updatedAt: new Date(),
+          updated_at: new Date(),
         },
       })
       .returning();
@@ -94,17 +94,17 @@ export class DatabaseStorage implements IStorage {
   // Customer operations
   async getCustomers(search?: string, offset = 0, limit = 10): Promise<{ customers: Customer[], total: number }> {
     const baseQuery = db.select().from(customers);
-    
+
     if (search) {
       const searchCondition = or(
         ilike(customers.name, `%${search}%`),
         ilike(customers.domain, `%${search}%`),
-        ilike(customers.adminName, `%${search}%`),
-        ilike(customers.adminEmail, `%${search}%`)
+        ilike(customers.admin_name, `%${search}%`),
+        ilike(customers.admin_email, `%${search}%`)
       );
-      
+
       const [customersResult, totalResult] = await Promise.all([
-        baseQuery.where(searchCondition).orderBy(desc(customers.createdAt)).offset(offset).limit(limit),
+        baseQuery.where(searchCondition).orderBy(desc(customers.created_at)).offset(offset).limit(limit),
         db.select({ count: count() }).from(customers).where(searchCondition)
       ]);
 
@@ -114,7 +114,7 @@ export class DatabaseStorage implements IStorage {
       };
     } else {
       const [customersResult, totalResult] = await Promise.all([
-        baseQuery.orderBy(desc(customers.createdAt)).offset(offset).limit(limit),
+        baseQuery.orderBy(desc(customers.created_at)).offset(offset).limit(limit),
         db.select({ count: count() }).from(customers)
       ]);
 
@@ -132,26 +132,26 @@ export class DatabaseStorage implements IStorage {
 
   async createCustomer(customerData: InsertCustomer): Promise<Customer> {
     // Hash the password before storing
-    const hashedPassword = await bcrypt.hash(customerData.adminPassword, 10);
-    
+    const hashedPassword = await bcrypt.hash(customerData.admin_password, 10);
+
     const [created] = await db
       .insert(customers)
       .values({
         ...customerData,
-        adminPassword: hashedPassword,
+        admin_password: hashedPassword,
       })
       .returning();
     return created;
   }
 
   async updateCustomer(id: string, customerData: Partial<InsertCustomer>): Promise<Customer> {
-    const updateData: any = { ...customerData, updatedAt: new Date() };
-    
+    const updateData: any = { ...customerData, updated_at: new Date() };
+
     // Hash password if it's being updated
-    if (customerData.adminPassword) {
-      updateData.adminPassword = await bcrypt.hash(customerData.adminPassword, 10);
+    if (customerData.admin_password) {
+      updateData.admin_password = await bcrypt.hash(customerData.admin_password, 10);
     }
-    
+
     const [updated] = await db
       .update(customers)
       .set(updateData)
@@ -171,21 +171,21 @@ export class DatabaseStorage implements IStorage {
         .from(customerUsers)
         .where(
           and(
-            eq(customerUsers.customerId, customerId),
+            eq(customerUsers.customer_id, customerId),
             or(
               ilike(customerUsers.email, `%${search}%`),
-              ilike(customerUsers.firstName, `%${search}%`),
-              ilike(customerUsers.lastName, `%${search}%`)
+              ilike(customerUsers.first_name, `%${search}%`),
+              ilike(customerUsers.last_name, `%${search}%`)
             )
           )
         )
-        .orderBy(desc(customerUsers.createdAt));
+        .orderBy(desc(customerUsers.created_at));
     }
 
     return db.select()
       .from(customerUsers)
-      .where(eq(customerUsers.customerId, customerId))
-      .orderBy(desc(customerUsers.createdAt));
+      .where(eq(customerUsers.customer_id, customerId))
+      .orderBy(desc(customerUsers.created_at));
   }
 
   async getCustomerUserById(id: string): Promise<CustomerUser | undefined> {
@@ -196,7 +196,7 @@ export class DatabaseStorage implements IStorage {
   async createCustomerUser(userData: InsertCustomerUser): Promise<CustomerUser> {
     // Hash the password before storing
     const hashedPassword = await bcrypt.hash(userData.password, 10);
-    
+
     const [created] = await db
       .insert(customerUsers)
       .values({
@@ -208,13 +208,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCustomerUser(id: string, userData: Partial<InsertCustomerUser>): Promise<CustomerUser> {
-    const updateData: any = { ...userData, updatedAt: new Date() };
-    
+    const updateData: any = { ...userData, updated_at: new Date() };
+
     // Hash password if it's being updated
     if (userData.password) {
       updateData.password = await bcrypt.hash(userData.password, 10);
     }
-    
+
     const [updated] = await db
       .update(customerUsers)
       .set(updateData)
@@ -246,73 +246,73 @@ export class DatabaseStorage implements IStorage {
       issues: issuesResult.count,
     };
   }
-  
+
   // Authentication helpers for CRM portal
   async verifyCustomerPassword(email: string, password: string): Promise<Customer | null> {
     const [customer] = await db
       .select()
       .from(customers)
-      .where(eq(customers.adminEmail, email));
-    
+      .where(eq(customers.admin_email, email));
+
     if (!customer) {
       return null;
     }
-    
-    const isPasswordValid = await bcrypt.compare(password, customer.adminPassword);
+
+    const isPasswordValid = await bcrypt.compare(password, customer.admin_password);
     if (!isPasswordValid) {
       return null;
     }
-    
+
     return customer;
   }
-  
+
   async verifyUserPassword(email: string, password: string): Promise<CustomerUser | null> {
     const [user] = await db
       .select()
       .from(customerUsers)
       .where(eq(customerUsers.email, email));
-    
+
     if (!user) {
       return null;
     }
-    
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return null;
     }
-    
+
     return user;
   }
 
   // Lead operations
   async getLeads(customerId: string, assignedUserId?: string): Promise<Lead[]> {
-    const conditions = [eq(leads.customerId, customerId)];
+    const conditions = [eq(leads.customer_id, customerId)];
     if (assignedUserId) {
-      conditions.push(eq(leads.assignedUserId, assignedUserId));
+      conditions.push(eq(leads.assigned_user_id, assignedUserId));
     }
-    
+
     return await db
       .select()
       .from(leads)
       .where(and(...conditions))
-      .orderBy(desc(leads.createdAt));
+      .orderBy(desc(leads.created_at));
   }
 
   async getLeadById(id: string, customerId: string): Promise<Lead | undefined> {
     const [lead] = await db
       .select()
       .from(leads)
-      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)));
+      .where(and(eq(leads.id, id), eq(leads.customer_id, customerId)));
     return lead;
   }
 
   async createLead(lead: InsertLead): Promise<Lead> {
     // Generate unique lead number
     const leadNumber = await this.generateUniqueLeadNumber();
-    
+
     const [newLead] = await db
       .insert(leads)
-      .values({ ...lead, leadNumber })
+      .values({ ...lead, public_id: leadNumber })
       .returning();
     return newLead;
   }
@@ -321,15 +321,15 @@ export class DatabaseStorage implements IStorage {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    
+
     // Find the highest sequence number for current year-month
     const existingLeads = await db
-      .select({ leadNumber: leads.leadNumber })
+      .select({ leadNumber: leads.public_id })
       .from(leads)
-      .where(sql`${leads.leadNumber} LIKE ${`L-${year}${month}-%`}`)
-      .orderBy(sql`${leads.leadNumber} DESC`)
+      .where(sql`${leads.public_id} LIKE ${`L-${year}${month}-%`}`)
+      .orderBy(sql`${leads.public_id} DESC`)
       .limit(1);
-    
+
     let sequence = 1;
     if (existingLeads.length > 0) {
       const lastNumber = existingLeads[0].leadNumber;
@@ -338,15 +338,40 @@ export class DatabaseStorage implements IStorage {
         sequence = parseInt(match[1]) + 1;
       }
     }
-    
+
     return `L-${year}${month}-${String(sequence).padStart(4, '0')}`;
+  }
+
+  private async generateUniqueQuoteNumber(): Promise<string> {
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+
+    // Find the highest sequence number for current year-month
+    const existingQuotes = await db
+      .select({ quoteNumber: quotes.public_id })
+      .from(quotes)
+      .where(sql`${quotes.public_id} LIKE ${`Q-${year}${month}-%`}`)
+      .orderBy(sql`${quotes.public_id} DESC`)
+      .limit(1);
+
+    let sequence = 1;
+    if (existingQuotes.length > 0) {
+      const lastNumber = existingQuotes[0].quoteNumber;
+      const match = lastNumber.match(/Q-\d{6}-(\d+)$/);
+      if (match) {
+        sequence = parseInt(match[1]) + 1;
+      }
+    }
+
+    return `Q-${year}${month}-${String(sequence).padStart(4, '0')}`;
   }
 
   async updateLead(id: string, customerId: string, lead: Partial<InsertLead>): Promise<Lead> {
     const [updatedLead] = await db
       .update(leads)
-      .set({ ...lead, updatedAt: new Date() })
-      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)))
+      .set({ ...lead, updated_at: new Date() })
+      .where(and(eq(leads.id, id), eq(leads.customer_id, customerId)))
       .returning();
     return updatedLead;
   }
@@ -354,13 +379,13 @@ export class DatabaseStorage implements IStorage {
   async deleteLead(id: string, customerId: string): Promise<void> {
     await db
       .delete(leads)
-      .where(and(eq(leads.id, id), eq(leads.customerId, customerId)));
+      .where(and(eq(leads.id, id), eq(leads.customer_id, customerId)));
   }
 
   async assignLead(leadId: string, customerId: string, userId: string): Promise<Lead> {
-    return await this.updateLead(leadId, customerId, { 
-      assignedUserId: userId,
-      status: "assigned" 
+    return await this.updateLead(leadId, customerId, {
+      assigned_user_id: userId,
+      status: "assigned"
     });
   }
 
@@ -369,7 +394,7 @@ export class DatabaseStorage implements IStorage {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      
+
       if (apiKey) {
         headers['Authorization'] = `Bearer ${apiKey}`;
       }
@@ -388,7 +413,7 @@ export class DatabaseStorage implements IStorage {
 
       // Process API response - this is a generic structure, can be customized per API
       const leadsData = Array.isArray(data) ? data : data.leads || data.data || [];
-      
+
       for (const leadData of leadsData) {
         // Skip if lead already exists based on external ID
         if (leadData.id || leadData.external_id) {
@@ -396,10 +421,10 @@ export class DatabaseStorage implements IStorage {
             .select()
             .from(leads)
             .where(and(
-              eq(leads.customerId, customerId),
-              eq(leads.externalId, leadData.id || leadData.external_id)
+              eq(leads.customer_id, customerId),
+              eq(leads.external_id, leadData.id || leadData.external_id)
             ));
-          
+
           if (existing.length > 0) {
             continue;
           }
@@ -407,23 +432,23 @@ export class DatabaseStorage implements IStorage {
 
         // Map API data to our lead structure
         const newLead: InsertLead = {
-          customerId,
-          contactName: leadData.contact_name || leadData.customer_name || 'Unknown',
-          contactEmail: leadData.contact_email || leadData.email || 'unknown@example.com',
-          contactPhone: leadData.contact_phone || leadData.phone || '0000000000',
+          customer_id: customerId,
+          contact_name: leadData.contact_name || leadData.customer_name || 'Unknown',
+          contact_email: leadData.contact_email || leadData.email || 'unknown@example.com',
+          contact_phone: leadData.contact_phone || leadData.phone || '0000000000',
           origin: leadData.origin || leadData.pickup_location || '',
           destination: leadData.destination || leadData.delivery_location || '',
-          pickupDate: new Date(leadData.pickup_date || leadData.pickup_time || Date.now()),
-          deliveryDate: leadData.delivery_date ? new Date(leadData.delivery_date) : undefined,
-          customerRate: leadData.rate || leadData.price || leadData.customer_rate,
+          pickup_date: new Date(leadData.pickup_date || leadData.pickup_time || Date.now()),
+          delivery_date: leadData.delivery_date ? new Date(leadData.delivery_date) : undefined,
+          customer_rate: leadData.rate || leadData.price || leadData.customer_rate,
           weight: leadData.weight,
-          vehicleType: leadData.vehicle_type || leadData.car_type || leadData.commodity,
-          transportType: leadData.transport_type || leadData.equipment || 'open',
+          vehicle_type: leadData.vehicle_type || leadData.car_type || leadData.commodity,
+          transport_type: leadData.transport_type || leadData.equipment || 'open',
           status: "lead",
           priority: leadData.priority || "normal",
           notes: leadData.notes || leadData.description,
           source: apiEndpoint,
-          externalId: leadData.id || leadData.external_id,
+          external_id: leadData.id || leadData.external_id,
         };
 
         const createdLead = await this.createLead(newLead);
@@ -442,22 +467,23 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(quotes)
-      .where(eq(quotes.customerId, customerId))
-      .orderBy(desc(quotes.createdAt));
+      .where(eq(quotes.customer_id, customerId))
+      .orderBy(desc(quotes.created_at));
   }
 
   async getQuoteById(id: string, customerId: string): Promise<Quote | undefined> {
     const [quote] = await db
       .select()
       .from(quotes)
-      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)));
+      .where(and(eq(quotes.id, id), eq(quotes.customer_id, customerId)));
     return quote;
   }
 
   async createQuote(quote: InsertQuote): Promise<Quote> {
+    const publicId = await this.generateUniqueQuoteNumber();
     const [newQuote] = await db
       .insert(quotes)
-      .values(quote)
+      .values({ ...quote, public_id: publicId })
       .returning();
     return newQuote;
   }
@@ -465,8 +491,8 @@ export class DatabaseStorage implements IStorage {
   async updateQuote(id: string, customerId: string, quote: Partial<InsertQuote>): Promise<Quote> {
     const [updatedQuote] = await db
       .update(quotes)
-      .set({ ...quote, updatedAt: new Date() })
-      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)))
+      .set({ ...quote, updated_at: new Date() })
+      .where(and(eq(quotes.id, id), eq(quotes.customer_id, customerId)))
       .returning();
     return updatedQuote;
   }
@@ -474,7 +500,7 @@ export class DatabaseStorage implements IStorage {
   async deleteQuote(id: string, customerId: string): Promise<void> {
     await db
       .delete(quotes)
-      .where(and(eq(quotes.id, id), eq(quotes.customerId, customerId)));
+      .where(and(eq(quotes.id, id), eq(quotes.customer_id, customerId)));
   }
 
   async convertLeadToQuote(leadId: string, customerId: string, quoteData: Partial<InsertQuote>): Promise<Quote> {
@@ -486,18 +512,18 @@ export class DatabaseStorage implements IStorage {
 
     // Create quote from lead data
     const newQuote = await this.createQuote({
-      leadId,
-      customerId,
-      createdByUserId: lead.assignedUserId || '',
-      carrierFees: quoteData.carrierFees || '0',
-      brokerFees: quoteData.brokerFees || '0', 
-      totalTariff: quoteData.totalTariff || '0',
-      pickupPersonName: quoteData.pickupPersonName || lead.contactName,
-      pickupPersonPhone: quoteData.pickupPersonPhone || lead.contactPhone,
-      pickupAddress: quoteData.pickupAddress || lead.origin,
-      dropoffPersonName: quoteData.dropoffPersonName || lead.contactName,
-      dropoffPersonPhone: quoteData.dropoffPersonPhone || lead.contactPhone,
-      dropoffAddress: quoteData.dropoffAddress || lead.destination,
+      lead_id: leadId,
+      customer_id: customerId,
+      created_by_user_id: lead.assigned_user_id || '',
+      carrier_fees: quoteData.carrier_fees || '0',
+      broker_fees: quoteData.broker_fees || '0',
+      total_tariff: quoteData.total_tariff || '0',
+      pickup_person_name: quoteData.pickup_person_name || lead.contact_name,
+      pickup_person_phone: quoteData.pickup_person_phone || lead.contact_phone,
+      pickup_address: quoteData.pickup_address || lead.origin,
+      dropoff_person_name: quoteData.dropoff_person_name || lead.contact_name,
+      dropoff_person_phone: quoteData.dropoff_person_phone || lead.contact_phone,
+      dropoff_address: quoteData.dropoff_address || lead.destination,
       ...quoteData,
     });
 

@@ -336,18 +336,21 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 
 export const insertQuoteSchema = createInsertSchema(quotes).omit({
   id: true,
+  public_id: true,
   created_at: true,
   updated_at: true,
 });
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
+  public_id: true,
   created_at: true,
   updated_at: true,
 });
 
 export const insertDispatchSchema = createInsertSchema(dispatch).omit({
   id: true,
+  public_id: true,
 });
 
 // Types

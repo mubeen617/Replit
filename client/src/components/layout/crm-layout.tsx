@@ -93,19 +93,19 @@ export default function CRMLayout({ user, userType, onLogout, children }: CRMLay
   const getInitials = (u: Customer | CustomerUser) => {
     if (userType === "customer") {
       const c = u as Customer;
-      return c.adminName ? c.adminName.split(" ").map((n) => n[0]).join("").toUpperCase() : "CM";
+      return c.admin_name ? c.admin_name.split(" ").map((n) => n[0]).join("").toUpperCase() : "CM";
     }
     const cu = u as CustomerUser;
-    return `${cu.firstName?.[0] || ""}${cu.lastName?.[0] || ""}`.toUpperCase() || "CU";
+    return `${cu.first_name?.[0] || ""}${cu.last_name?.[0] || ""}`.toUpperCase() || "CU";
   };
 
   const getUserDisplayName = (u: Customer | CustomerUser) => {
     if (userType === "customer") {
       const c = u as Customer;
-      return c.adminName || "Customer Manager";
+      return c.admin_name || "Customer Manager";
     }
     const cu = u as CustomerUser;
-    return `${cu.firstName} ${cu.lastName}`;
+    return `${cu.first_name} ${cu.last_name}`;
   };
 
   const getUserRole = (u: Customer | CustomerUser) => {

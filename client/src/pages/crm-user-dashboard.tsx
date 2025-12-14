@@ -75,7 +75,7 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Welcome, {user.firstName}
+                  Welcome, {user.first_name}
                 </h1>
                 <p className="text-sm text-gray-600">Vehicle Broker Agent Dashboard</p>
               </div>
@@ -184,14 +184,14 @@ export default function CRMUserDashboard({ user, onLogout }: CRMUserDashboardPro
                 <TableBody>
                   {loads.map((load: any) => (
                     <TableRow key={load.id}>
-                      <TableCell className="font-medium">#{load.number}</TableCell>
+                      <TableCell className="font-medium">#{load.public_id}</TableCell>
                       <TableCell>{load.origin}</TableCell>
                       <TableCell>{load.destination}</TableCell>
                       <TableCell>
-                        {new Date(load.pickupDate).toLocaleDateString()}
+                        {new Date(load.pickup_date).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        {new Date(load.deliveryDate).toLocaleDateString()}
+                        {new Date(load.delivery_date).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusBadgeColor(load.status)}>

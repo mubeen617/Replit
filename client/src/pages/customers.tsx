@@ -35,7 +35,7 @@ export default function Customers() {
       const res = await apiRequest("GET", `/api/customers?${params.toString()}`);
       return await res.json();
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   const deleteMutation = useMutation({

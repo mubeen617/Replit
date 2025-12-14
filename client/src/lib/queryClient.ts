@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryKey } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -27,12 +27,12 @@ type UnauthorizedBehavior = "returnNull" | "throw";
 
 export const getQueryFn = <T>(options: { on401: UnauthorizedBehavior }) => {
   const { on401 } = options;
-  return async ({ queryKey }: { queryKey: any[] }) => {
+  return async ({ queryKey }: { queryKey: QueryKey }) => {
     const base = queryKey[0];
     const params = queryKey[1];
     let url = typeof base === "string" ? base : String(base);
     if (params && typeof params === "object" && !Array.isArray(params)) {
-      const search = new URLSearchParams(params as Record<string, string | number>);
+      const search = new URLSearchParams(params as any);
       const qs = search.toString();
       if (qs) url += `?${qs}`;
     }

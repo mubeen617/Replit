@@ -79,7 +79,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
         title: "User Added",
         description: "New broker agent has been added to your team",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", user.id] });
       setIsAddUserOpen(false);
     },
     onError: (error: any) => {
@@ -100,7 +100,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
         title: "User Deleted",
         description: "Broker agent has been removed from your team",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", user.id] });
     },
     onError: (error: any) => {
       toast({
@@ -120,7 +120,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
         title: "User Updated",
         description: "Broker agent information has been updated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/users", user.id] });
     },
     onError: (error: any) => {
       toast({
@@ -134,7 +134,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
   const handleAddUser = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+
     const userData = {
       customerId: user.id,
       email: formData.get("email") as string,
@@ -225,7 +225,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="email">Email *</Label>
                   <Input
@@ -237,7 +237,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
                     placeholder="john.doe@example.com"
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="password">Password *</Label>
                   <Input
@@ -250,7 +250,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
                     minLength={8}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="role">Role *</Label>
                   <Select name="role" defaultValue="user">
@@ -385,7 +385,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
                       <TableCell>
                         <div className="space-y-1">
                           <div className="font-medium" data-testid={`text-member-name-${member.id}`}>
-                            {member.firstName} {member.lastName}
+                            {member.first_name} {member.last_name}
                           </div>
                           <div className="text-sm text-gray-500">
                             Broker Agent
@@ -400,9 +400,9 @@ export default function CRMTeam({ user }: CRMTeamProps) {
                       </TableCell>
                       <TableCell>
                         <Badge className={getRoleBadgeColor(member.role)}>
-                          {member.role === 'admin' ? 'Broker Admin' : 
-                           member.role === 'user' ? 'Broker Agent' : 
-                           'Viewer'}
+                          {member.role === 'admin' ? 'Broker Admin' :
+                            member.role === 'user' ? 'Broker Agent' :
+                              'Viewer'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -414,7 +414,7 @@ export default function CRMTeam({ user }: CRMTeamProps) {
                         <div className="flex items-center space-x-2 text-sm">
                           <Calendar className="h-3 w-3 text-gray-400" />
                           <span>
-                            {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "N/A"}
+                            {member.created_at ? new Date(member.created_at).toLocaleDateString() : "N/A"}
                           </span>
                         </div>
                       </TableCell>
@@ -435,15 +435,15 @@ export default function CRMTeam({ user }: CRMTeamProps) {
                             <DropdownMenuItem onClick={() => setSelectedUser(member)}>
                               View Details
                             </DropdownMenuItem>
-                            
-                            <DropdownMenuItem 
+
+                            <DropdownMenuItem
                               onClick={() => handleChangeRole(member.id, member.role === 'admin' ? 'user' : 'admin')}
                               data-testid={`action-change-role-${member.id}`}
                             >
                               {member.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
                             </DropdownMenuItem>
-                            
-                            <DropdownMenuItem 
+
+                            <DropdownMenuItem
                               onClick={() => updateUserMutation.mutate({
                                 userId: member.id,
                                 data: { status: member.status === 'active' ? 'inactive' : 'active' }
@@ -451,11 +451,11 @@ export default function CRMTeam({ user }: CRMTeamProps) {
                             >
                               {member.status === 'active' ? 'Deactivate' : 'Activate'}
                             </DropdownMenuItem>
-                            
+
                             <DropdownMenuItem>
                               Reset Password
                             </DropdownMenuItem>
-                            
+
                             <DropdownMenuItem
                               className="text-red-600"
                               onClick={() => handleDeleteUser(member.id)}

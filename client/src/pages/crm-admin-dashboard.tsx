@@ -144,9 +144,9 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
       });
       return;
     }
-    fetchLeadsMutation.mutate({ 
-      endpoint: apiEndpoint.trim(), 
-      key: apiKey.trim() || undefined 
+    fetchLeadsMutation.mutate({
+      endpoint: apiEndpoint.trim(),
+      key: apiKey.trim() || undefined
     });
   };
 
@@ -299,8 +299,8 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                     <Button variant="outline" onClick={() => setIsApiDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button 
-                      onClick={handleFetchLeads} 
+                    <Button
+                      onClick={handleFetchLeads}
                       disabled={fetchLeadsMutation.isPending}
                     >
                       {fetchLeadsMutation.isPending && (
@@ -352,7 +352,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                   <TableBody>
                     {leads.slice(0, 10).map((lead) => (
                       <TableRow key={lead.id}>
-                        <TableCell className="font-medium">{lead.leadNumber}</TableCell>
+                        <TableCell className="font-medium">{lead.public_id}</TableCell>
                         <TableCell>
                           <div className="flex items-center text-sm">
                             <span className="font-medium">{lead.origin}</span>
@@ -360,21 +360,20 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                             <span>{lead.destination}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{new Date(lead.pickupDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{lead.vehicleType || 'Any Vehicle'}</TableCell>
-                        <TableCell>{lead.customerRate ? `$${lead.customerRate}` : 'TBD'}</TableCell>
+                        <TableCell>{new Date(lead.pickup_date).toLocaleDateString()}</TableCell>
+                        <TableCell>{lead.vehicle_type || 'Any Vehicle'}</TableCell>
+                        <TableCell>{lead.customer_rate ? `$${lead.customer_rate}` : 'TBD'}</TableCell>
                         <TableCell>
-                          <Badge className={`${
-                            lead.status === 'available' ? 'bg-green-100 text-green-800' :
-                            lead.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
-                            lead.status === 'booked' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
+                          <Badge className={`${lead.status === 'available' ? 'bg-green-100 text-green-800' :
+                              lead.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                                lead.status === 'booked' ? 'bg-purple-100 text-purple-800' :
+                                  'bg-gray-100 text-gray-800'
+                            }`}>
                             {lead.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {lead.assignedUserId ? 'Assigned' : 'Unassigned'}
+                          {lead.assigned_user_id ? 'Assigned' : 'Unassigned'}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center text-sm">
@@ -467,7 +466,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                   {users.map((user: CustomerUser) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">
-                        {user.firstName} {user.lastName}
+                        {user.first_name} {user.last_name}
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
@@ -481,7 +480,7 @@ export default function CRMAdminDashboard({ customer, onLogout }: CRMAdminDashbo
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                        {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

@@ -29,7 +29,7 @@ export default function Users() {
         const res = await apiRequest("GET", "/api/customers");
         return await res.json();
       },
-      keepPreviousData: true,
+      placeholderData: (previousData) => previousData,
     }
   );
 
@@ -43,7 +43,7 @@ export default function Users() {
         const res = await apiRequest("GET", `/api/customers/${selectedCustomer}/users?${params.toString()}`);
         return await res.json();
       },
-      keepPreviousData: true,
+      placeholderData: (previousData) => previousData,
     }
   );
 

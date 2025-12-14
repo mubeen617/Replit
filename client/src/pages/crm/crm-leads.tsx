@@ -477,7 +477,7 @@ export default function CRMLeads({ user, userType }: CRMLeadsProps) {
                                       key={member.id}
                                       onClick={() => assignUserMutation.mutate({ leadId: lead.id, userId: member.id })}
                                     >
-                                      {member.username}
+                                      {member.first_name} {member.last_name}
                                     </DropdownMenuItem>
                                   ))}
                                 </DropdownMenuContent>
