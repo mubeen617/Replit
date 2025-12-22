@@ -317,7 +317,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      res.json({ type: "customer", data: customer });
+      // Remove password from response
+      const { admin_password, ...customerWithoutPassword } = customer;
+      res.json({ type: "customer", data: customerWithoutPassword });
     } catch (error) {
       console.error("Customer login error:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -352,7 +354,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      res.json({ type: "user", data: user });
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ type: "user", data: userWithoutPassword });
     } catch (error) {
       console.error("User login error:", error);
       res.status(500).json({ message: "Internal server error" });

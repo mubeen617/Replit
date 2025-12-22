@@ -18,13 +18,23 @@ interface CRMUser {
 }
 
 export default function CRMPortal() {
-  const [currentUser, setCurrentUser] = useState<CRMUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<CRMUser | null>(() => {
+    try {
+      const stored = localStorage.getItem('crm_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      console.error('Failed to restore session', e);
+      return null;
+    }
+  });
 
   const handleLogin = (user: CRMUser) => {
+    localStorage.setItem('crm_user', JSON.stringify(user));
     setCurrentUser(user);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('crm_user');
     setCurrentUser(null);
   };
 
