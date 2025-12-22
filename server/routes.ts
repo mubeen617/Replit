@@ -114,7 +114,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid customer data", errors: error.errors });
       }
       console.error("Error creating customer:", error);
-      res.status(500).json({ message: "Failed to create customer" });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const supabaseError = (error as any)?.code || (error as any)?.details || "";
+      res.status(500).json({ message: "Failed to create customer", error: errorMessage, details: supabaseError });
     }
   });
 

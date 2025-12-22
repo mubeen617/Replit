@@ -59,10 +59,12 @@ export function CreateCustomerModal({ open, onOpenChange }: CreateCustomerModalP
       form.reset();
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      const errorMsg = error?.message || error?.error || "Failed to create customer";
+      console.error("Customer creation error:", error);
       toast({
         title: "Error",
-        description: "Failed to create customer",
+        description: errorMsg,
         variant: "destructive",
       });
     },
